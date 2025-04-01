@@ -3,6 +3,7 @@
 #include "WindowSystemBPLibrary.h"
 
 #include "Kismet/KismetRenderingLibrary.h"
+#include "CustomViewport.h"
 
 #include "WindowSystem.h"
 

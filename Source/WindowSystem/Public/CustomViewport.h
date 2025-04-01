@@ -23,7 +23,7 @@ public:
     FVector2D Position = FVector2D();
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateNewLayout, const TArray<FPlayerViews>&, Array_Views);
+DECLARE_MULTICAST_DELEGATE_OneParam(FDelegateNewLayout, const TArray<FPlayerViews>&);
 
 UCLASS()
 class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient
@@ -61,7 +61,6 @@ public:
     virtual bool PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId = -1);
 
     virtual bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);
-
     virtual bool SetBackgrounMaterial(UMaterialInterface* In_Material);
     virtual UMaterialInterface* GetBackgroundMaterial();
     virtual void ToggleBackground(bool bStop);

@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Viewport/CustomViewport.h"
+#include "CustomViewport.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Canvas.h"
@@ -177,30 +177,6 @@ void UCustomViewport::LayoutPlayers()
         UE_LOG(LogTemp, Fatal, TEXT("Player count shouldn't exceed 4. Requested number = %d"), Player_Count);
         return;
     }
-
-    /*
-    for (int32 PlayerIdx = 0; PlayerIdx < Player_Count; PlayerIdx++)
-    {
-        if (SplitType < SplitscreenInfo.Num() && PlayerIdx < SplitscreenInfo[SplitType].PlayerData.Num())
-        {
-            PlayerList[PlayerIdx]->Size = FVector2D(SplitscreenInfo[SplitType].PlayerData[PlayerIdx].SizeX, SplitscreenInfo[SplitType].PlayerData[PlayerIdx].SizeY);
-            PlayerList[PlayerIdx]->Origin = FVector2D(SplitscreenInfo[SplitType].PlayerData[PlayerIdx].OriginX, SplitscreenInfo[SplitType].PlayerData[PlayerIdx].OriginY);
-        }
-
-        else
-        {
-            PlayerList[PlayerIdx]->Size = FVector2D(0.f);
-            PlayerList[PlayerIdx]->Origin = FVector2D(0.f);
-        }
-
-        FPlayerViews View;
-        View.Size = PlayerList[PlayerIdx]->Size;
-        View.Position = (PlayerList[PlayerIdx]->Origin);
-        Array_Views.Add(View);
-    }
-
-    DelegateNewLayout.Broadcast(Array_Views);
-    */
 }
 
 void UCustomViewport::Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas)

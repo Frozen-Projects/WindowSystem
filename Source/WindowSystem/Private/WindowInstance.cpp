@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Window/EachWindow_SWindow.h"
+#include "WindowInstance.h"
 
 // UE Includes.
 #include "Framework/Application/SWindowTitleBar.h"
@@ -23,10 +23,18 @@ void AEachWindow_SWindow::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// If "Manager" and "ContentWidget" are not valid, just destroy window actor and don't go any further.
-	if (!IsValid(this->Manager) || !IsValid(ContentWidget))
+	this->WindowSubsystem = GEngine->GetCurrentPlayWorld()->GetSubsystem<UFF_WindowSubystem>();
+
+	if (!IsValid(WindowSubsystem))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"Manager\" and \"ContentWidget\" are not valid for: %s"), *FString(WindowTag.ToString()));
+		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"Manager\" are not valid for: %s"), *FString(WindowTag.ToString()));
+		this->Destroy();
+		return;
+	}
+
+	if (!IsValid(ContentWidget))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"ContentWidget\" are not valid for: %s"), *FString(WindowTag.ToString()));
 		this->Destroy();
 		return;
 	}
@@ -40,7 +48,7 @@ void AEachWindow_SWindow::BeginPlay()
 	}
 
 	// Add created window actor class to the list.
-	this->Manager->MAP_Windows.Add(WindowTag, this);
+	WindowSubsystem->MAP_Windows.Add(WindowTag, this);
 
 	// Start window hover detection.
 
@@ -59,9 +67,9 @@ void AEachWindow_SWindow::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		Hover_Timer.Invalidate();
 	}
 	
-	if (IsValid(this->Manager))
+	if (IsValid(this->WindowSubsystem))
 	{
-		this->Manager->OnWindowClosed(WindowTag);
+		this->WindowSubsystem->OnWindowClosed.Broadcast(WindowTag);
 	}
 
 	this->CloseWindowCallback();
@@ -86,7 +94,7 @@ void AEachWindow_SWindow::NotifyWindowMoved(const TSharedRef<SWindow>& Window)
 		return;
 	}
 
-	if (!IsValid(this->Manager))
+	if (!IsValid(this->WindowSubsystem))
 	{
 		return;
 	}
@@ -96,7 +104,7 @@ void AEachWindow_SWindow::NotifyWindowMoved(const TSharedRef<SWindow>& Window)
 		return;
 	}
 
-	this->Manager->OnWindowMoved(this);
+	this->WindowSubsystem->OnWindowMoved.Broadcast(this);
 }
 
 void AEachWindow_SWindow::NotifyWindowHovered(bool bUseDirectHover)
@@ -106,7 +114,7 @@ void AEachWindow_SWindow::NotifyWindowHovered(bool bUseDirectHover)
 		return;
 	}
 
-	if (!IsValid(this->Manager))
+	if (!IsValid(this->WindowSubsystem))
 	{
 		return;
 	}
@@ -121,12 +129,12 @@ void AEachWindow_SWindow::NotifyWindowHovered(bool bUseDirectHover)
 		return;
 	}
 
-	this->Manager->OnWindowHovered(this);
+	this->WindowSubsystem->OnWindowHovered.Broadcast(this);
 }
 
 bool AEachWindow_SWindow::CreateNewWindow()
 {
-	if (!IsValid(this->Manager))
+	if (!IsValid(this->WindowSubsystem))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Window manager is not valid : %s"), *FString(WindowTag.ToString()));
 		return false;
@@ -138,7 +146,7 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		return false;
 	}
 
-	if (this->Manager->MAP_Windows.Contains(WindowTag))
+	if (this->WindowSubsystem->MAP_Windows.Contains(WindowTag))
 	{
 		UE_LOG(LogTemp, Error, TEXT("There is a window with that tag."));
 		return false;
@@ -196,7 +204,7 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		return false;
 	}
 
-	FWindowSizeLimits SizeLimits;
+	FWindowSizeLimits SizeLimits = FWindowSizeLimits();
 	SizeLimits.SetMinWidth(MinSize.X);
 	SizeLimits.SetMinHeight(MinSize.Y);
 
@@ -269,9 +277,9 @@ void AEachWindow_SWindow::CloseWindowCallback()
 		WindowPtr.Reset();
 	}
 
-	if (IsValid(this->Manager) && this->Manager->MAP_Windows.Contains(WindowTag))
+	if (IsValid(this->WindowSubsystem) && this->WindowSubsystem->MAP_Windows.Contains(WindowTag))
 	{
-		this->Manager->MAP_Windows.Remove(WindowTag);
+		this->WindowSubsystem->MAP_Windows.Remove(WindowTag);
 	}
 }
 
@@ -580,20 +588,20 @@ bool AEachWindow_SWindow::GetWindowState(EWindowState& OutWindowState)
 
 	switch (WindowPlacement.showCmd)
 	{
-	case SW_NORMAL:
+		case SW_NORMAL:
 
-		OutWindowState = EWindowState::Restored;
-		return true;
+			OutWindowState = EWindowState::Restored;
+			return true;
 
-	case SW_MAXIMIZE:
+		case SW_MAXIMIZE:
 
-		OutWindowState = EWindowState::Maximized;
-		return true;
+			OutWindowState = EWindowState::Maximized;
+			return true;
 
-	case SW_SHOWMINIMIZED:
+		case SW_SHOWMINIMIZED:
 
-		OutWindowState = EWindowState::Minimized;
-		return true;
+			OutWindowState = EWindowState::Minimized;
+			return true;
 	}
 
 	return false;

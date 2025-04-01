@@ -6,16 +6,19 @@
 #include "GameFramework/Actor.h"
 
 // Custom Includes.
-#include "WindowEnums.h"
 #include "WindowManager.h"
 
-#include "EachWindow_SWindow.generated.h"
+#include "WindowInstance.generated.h"
 
 UCLASS()
 class WINDOWSYSTEM_API AEachWindow_SWindow : public AActor
 {
 	GENERATED_BODY()
 	
+private:
+
+	UFF_WindowSubystem* WindowSubsystem = nullptr;
+
 protected:
 
 	// Called when the game starts or when spawned.
@@ -61,9 +64,6 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, meta = (ToolTip = "", ExposeOnSpawn = "true"))
 	UUserWidget* ContentWidget = nullptr;
-
-	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "", ExposeOnSpawn = "true"))
-	AWindowManager* Manager = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "", ExposeOnSpawn = "true"))
 	EWindowTypeBp WindowTypeBp = EWindowTypeBp::Normal;

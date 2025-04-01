@@ -1,10 +1,29 @@
-#include "Window/DragDropHandler.h"
-#include "Window/WindowManager.h"
+#include "DragDropHandler.h"
+#include "WindowManager.h"
 
 bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, LPARAM LParam, int32& OutResult)
 {
-	// Drop System.
-	AWindowManager* WindowManager = (AWindowManager*)this->OwnerActor;
+	TObjectPtr<UGameViewportClient> Viewport = GEngine->GameViewport;
+
+	if (!IsValid(Viewport))
+	{
+		return false;
+	}
+
+	UWorld* World = Viewport->GetWorld();
+
+	if (!IsValid(World))
+	{
+		return false;
+	}
+
+	UFF_WindowSubystem* WindowSubsystem = World->GetSubsystem<UFF_WindowSubystem>();
+
+	if (!IsValid(WindowSubsystem))
+	{
+		return false;
+	}
+
 	HWND MainWindowHandle;
 	HDROP DropInfo = (HDROP)WParam;
 
@@ -53,7 +72,7 @@ bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, 
 		case WM_DROPFILES:
 		{
 			// If message sender window is main window and user not want to get files on it, return false.
-			if (WindowManager->bAllowMainWindow == false)
+			if (WindowSubsystem->bAllowMainWindow == false)
 			{
 				MainWindowHandle = reinterpret_cast<HWND>(GEngine->GameViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
 				if (Hwnd == MainWindowHandle)
@@ -94,7 +113,7 @@ bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, 
 				}
 			}
 
-			WindowManager->OnFileDrop(OutArray);
+			WindowSubsystem->OnFileDrop.Broadcast(OutArray);
 			OutArray.Empty();
 
 			DragFinish(DropInfo);
