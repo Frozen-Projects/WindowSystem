@@ -1,10 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "WindowSystemBPLibrary.h"
-
-#include "Kismet/KismetRenderingLibrary.h"
-#include "CustomViewport.h"
-
 #include "WindowSystem.h"
 
 UWindowSystemBPLibrary::UWindowSystemBPLibrary(const FObjectInitializer& ObjectInitializer)
@@ -344,14 +340,29 @@ void UWindowSystemBPLibrary::SaveFileDialog(FDelegateSaveFile DelegateSaveFile, 
 
 bool UWindowSystemBPLibrary::PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId)
 {
-	UCustomViewport* CustomViewport = Cast<UCustomViewport>(GEngine->GameViewport.Get());
+	UWorld* World = GEngine->GetCurrentPlayWorld();
+	UEngine* const REF_Engine = GEngine->GameViewport->GetGameInstance()->GetEngine();
+	const int32 NumPlayers = REF_Engine->GetNumGamePlayers(World);
 
-	if (!CustomViewport)
+	if (NumPlayers > PlayerId + 1 || ControllerId < -1)
 	{
 		return false;
 	}
 
-	return CustomViewport->PossesLocalPlayer(PlayerId, ControllerId);
+	int32 PlayerControllerId = 0;
+	if (ControllerId == -1)
+	{
+		PlayerControllerId = UGameplayStatics::GetPlayerControllerID(REF_Engine->GetGamePlayer(World, 0)->GetPlayerController(World));
+	}
+
+	else
+	{
+		PlayerControllerId = ControllerId;
+	}
+
+	REF_Engine->GetGamePlayer(World, PlayerId)->SetControllerId(PlayerControllerId);
+
+	return true;
 }
 
 bool UWindowSystemBPLibrary::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin)

@@ -11,6 +11,19 @@ void UFF_WindowSubystem::Initialize(FSubsystemCollectionBase& Collection)
 	FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubystem::OnWorldTickStart);
 }
 
+void UFF_WindowSubystem::Deinitialize()
+{
+	Super::Deinitialize();
+
+	this->RemoveDragDropHandlerFromMV();
+	this->CloseAllWindows();
+
+	if (this->MouseHook_Color)
+	{
+		UnhookWindowsHookEx(MouseHook_Color);
+	}
+}
+
 void UFF_WindowSubystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime)
 {
 	if (IsValid(World))
@@ -23,19 +36,6 @@ void UFF_WindowSubystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, fl
 		}
 
 		this->AddDragDropHandlerToMV();
-	}
-}
-
-void UFF_WindowSubystem::Deinitialize()
-{
-	Super::Deinitialize();
-
-	this->RemoveDragDropHandlerFromMV();
-	this->CloseAllWindows();
-
-	if (this->MouseHook_Color)
-	{
-		UnhookWindowsHookEx(MouseHook_Color);
 	}
 }
 
@@ -68,6 +68,131 @@ void UFF_WindowSubystem::RemoveDragDropHandlerFromMV()
 	}
 }
 
+bool UFF_WindowSubystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
+{
+	if (A.Num() != B.Num())
+	{
+		return false;
+	}
+
+	TArray<FVector2D> A_Keys;
+	A.GenerateKeyArray(A_Keys);
+
+	TArray<FVector2D> A_Values;
+	A.GenerateValueArray(A_Values);
+
+	TArray<FVector2D> B_Keys;
+	B.GenerateKeyArray(B_Keys);
+
+	TArray<FVector2D> B_Values;
+	B.GenerateValueArray(B_Values);
+
+	if (A_Keys == B_Keys && A_Values == B_Values)
+	{
+		return true;
+	}
+
+	else
+	{
+		return false;
+	}
+}
+
+void UFF_WindowSubystem::DetectLayoutChanges()
+{
+	if (!this->CustomViewport)
+	{
+		return;
+	}
+
+	this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
+		{
+			this->ChangeBackgroundOnNewPlayer(Views);
+			this->OnLayoutChanged.Broadcast(Views);
+		}
+	);
+}
+
+void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views)
+{
+	if (!this->CustomViewport)
+	{
+		this->LastError = "Custom viewport is not valid !";
+		return;
+	}
+
+	if (Out_Views.IsEmpty())
+	{
+		this->LastError = "Views are empty !";
+		return;
+	}
+
+	if (!IsValid(this->MAT_BG))
+	{
+		this->LastError = "Background material is not valid !";
+		return;
+	}
+
+	if (!IsValid(this->MAT_Brush))
+	{
+		this->LastError = "Brush material is not valid !";
+		return;
+	}
+
+	if (this->CanvasName.IsNone())
+	{
+		this->LastError = "Canvas name is empty !";
+		return;
+	}
+
+	FVector2D ViewportSize = FVector2D();
+	this->CustomViewport->GetViewportSize(ViewportSize);
+
+	if (ViewportSize == FVector2D(0.f))
+	{
+		this->LastError = "Viewport size shouldn't be zero !";
+		return;
+	}
+
+	TMap<FVector2D, FVector2D> Temp_Views;
+
+	for (const FPlayerViews Each_View : Out_Views)
+	{
+		const FVector2D ActualPosition = ViewportSize * Each_View.Position;
+		const FVector2D ActualSize = ViewportSize * Each_View.Size;
+
+		TMap<FString, FVector2D> Temp_ViewLayout;
+		Temp_ViewLayout.Add("Full Size", ViewportSize);
+		Temp_ViewLayout.Add("Actual Position", ActualPosition);
+		Temp_ViewLayout.Add("Actual Size", ActualSize);
+		Temp_ViewLayout.Add("UV Position", Each_View.Position);
+		Temp_ViewLayout.Add("UV Size", Each_View.Size);
+		this->ViewLayout = Temp_ViewLayout;
+
+		Temp_Views.Add(ActualPosition, ActualSize);
+	}
+
+	if (Temp_Views.IsEmpty())
+	{
+		this->LastError = "Actual size map is empty !";
+		return;
+	}
+
+	if (this->CompareViews(this->MAP_Views, Temp_Views))
+	{
+		this->LastError = "Views are not changed !";
+		return;
+	}
+
+	this->MAP_Views = Temp_Views;
+	const bool RetVal = UWindowSystemBPLibrary::SetBackgroundMaterial(this->MAT_BG, this->MAT_Brush, this->CanvasName, this->MAP_Views);
+
+	if (!RetVal)
+	{
+		this->LastError = "There was a problem while changing background !";
+	}
+}
+
 bool UFF_WindowSubystem::CloseAllWindows()
 {
 	if (this->MAP_Windows.IsEmpty())
@@ -86,67 +211,6 @@ bool UFF_WindowSubystem::CloseAllWindows()
 
 	this->MAP_Windows.Empty();
 	return true;
-}
-
-void UFF_WindowSubystem::Toggle_Color_Picker()
-{
-	if (this->MouseHook_Color)
-	{
-		UnhookWindowsHookEx(MouseHook_Color);
-		this->MouseHook_Color = NULL;
-	}
-
-	else
-	{
-		thread_local UFF_WindowSubystem* WindowSubsystem = this;
-
-		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
-			{
-				if (wParam == WM_LBUTTONDOWN && IsValid(WindowSubsystem))
-				{
-					HWND ScreenHandle = GetDesktopWindow();
-					if (!ScreenHandle)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Screen Handle"));
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					HDC ScreenContext = GetDC(ScreenHandle);
-					if (!ScreenContext)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Screen Context"));
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					POINT RawPos;
-					bool GotCursorPos = GetCursorPos(&RawPos);
-					if (!GotCursorPos)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Got Cursor Pos : %d"), GetLastError());
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					COLORREF RawColor = GetPixel(ScreenContext, RawPos.x, RawPos.y);
-					FLinearColor PositionColor = FLinearColor();
-					PositionColor.R = GetRValue(RawColor);
-					PositionColor.G = GetGValue(RawColor);
-					PositionColor.B = GetBValue(RawColor);
-					PositionColor.A = 255;
-
-					ReleaseDC(ScreenHandle, ScreenContext);
-					WindowSubsystem->OnCursorPosColor.Broadcast(FVector2D(RawPos.x, RawPos.y), PositionColor);
-				}
-
-				return CallNextHookEx(0, nCode, wParam, lParam);
-			};
-
-		this->MouseHook_Color = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
-	}
-}
-
-bool UFF_WindowSubystem::IsColorPickerActive()
-{
-	return this->MouseHook_Color ? true : false;
 }
 
 bool UFF_WindowSubystem::ToggleWindowState(FName InTargetWindow, bool bFlashWindow)
@@ -268,168 +332,75 @@ bool UFF_WindowSubystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 	return true;
 }
 
-bool UFF_WindowSubystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
+void UFF_WindowSubystem::Toggle_Color_Picker()
 {
-	if (A.Num() != B.Num())
+	if (this->MouseHook_Color)
 	{
-		return false;
-	}
-
-	TArray<FVector2D> A_Keys;
-	A.GenerateKeyArray(A_Keys);
-
-	TArray<FVector2D> A_Values;
-	A.GenerateValueArray(A_Values);
-
-	TArray<FVector2D> B_Keys;
-	B.GenerateKeyArray(B_Keys);
-
-	TArray<FVector2D> B_Values;
-	B.GenerateValueArray(B_Values);
-
-	if (A_Keys == B_Keys && A_Values == B_Values)
-	{
-		return true;
+		UnhookWindowsHookEx(MouseHook_Color);
+		this->MouseHook_Color = NULL;
 	}
 
 	else
 	{
-		return false;
+		thread_local UFF_WindowSubystem* WindowSubsystem = this;
+
+		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
+			{
+				if (wParam == WM_LBUTTONDOWN && IsValid(WindowSubsystem))
+				{
+					HWND ScreenHandle = GetDesktopWindow();
+					if (!ScreenHandle)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Screen Handle"));
+						return CallNextHookEx(0, nCode, wParam, lParam);
+					}
+
+					HDC ScreenContext = GetDC(ScreenHandle);
+					if (!ScreenContext)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Screen Context"));
+						return CallNextHookEx(0, nCode, wParam, lParam);
+					}
+
+					POINT RawPos;
+					bool GotCursorPos = GetCursorPos(&RawPos);
+					if (!GotCursorPos)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Got Cursor Pos : %d"), GetLastError());
+						return CallNextHookEx(0, nCode, wParam, lParam);
+					}
+
+					COLORREF RawColor = GetPixel(ScreenContext, RawPos.x, RawPos.y);
+					FLinearColor PositionColor = FLinearColor();
+					PositionColor.R = GetRValue(RawColor);
+					PositionColor.G = GetGValue(RawColor);
+					PositionColor.B = GetBValue(RawColor);
+					PositionColor.A = 255;
+
+					ReleaseDC(ScreenHandle, ScreenContext);
+					WindowSubsystem->OnCursorPosColor.Broadcast(FVector2D(RawPos.x, RawPos.y), PositionColor);
+				}
+
+				return CallNextHookEx(0, nCode, wParam, lParam);
+			};
+
+		this->MouseHook_Color = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
 	}
 }
 
-void UFF_WindowSubystem::DetectLayoutChanges()
+bool UFF_WindowSubystem::IsColorPickerActive()
 {
-	if (!this->CustomViewport)
-	{
-		return;
-	}
-
-	this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
-		{
-			this->ChangeBackgroundOnNewPlayer(Views);
-			this->OnLayoutChanged.Broadcast(Views);
-		}
-	);
+	return this->MouseHook_Color ? true : false;
 }
 
-void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views)
+FString UFF_WindowSubystem::ViewLayoutLog()
 {
-	if (!this->CustomViewport)
+	FString OutString = "";
+	
+	for (TPair<FString, FVector2D> EachPair : this->ViewLayout)
 	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Custom viewport is not valid !"));
-		}
-
-		return;
+		OutString += EachPair.Key + EachPair.Value.ToString() + "\n";
 	}
-
-	if (Out_Views.IsEmpty())
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Views are empty !"));
-		}
-
-		return;
-	}
-
-	if (!IsValid(this->MAT_BG))
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Background material is not valid !"));
-		}
-
-		return;
-	}
-
-	if (!IsValid(this->MAT_Brush))
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Brush material is not valid !"));
-		}
-
-		return;
-	}
-
-	if (this->CanvasName.IsNone())
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Canvas name is empty !"));
-		}
-
-		return;
-	}
-
-	FVector2D ViewportSize = FVector2D();
-	this->CustomViewport->GetViewportSize(ViewportSize);
-
-	if (ViewportSize == FVector2D(0.f))
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Viewport size shouldn't be zero !"));
-		}
-
-		return;
-	}
-
-	TMap<FVector2D, FVector2D> Temp_Views;
-
-	for (const FPlayerViews Each_View : Out_Views)
-	{
-		const FVector2D ActualPosition = ViewportSize * Each_View.Position;
-		const FVector2D ActualSize = ViewportSize * Each_View.Size;
-
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Full Size = %s ; ActualPosition = %s, ActualSize = %s // UV Position = %s ; UV Size = %s"), *ViewportSize.ToString(), *ActualPosition.ToString(), *ActualSize.ToString(), *Each_View.Position.ToString(), *Each_View.Size.ToString());
-
-		}
-
-		Temp_Views.Add(ActualPosition, ActualSize);
-	}
-
-	if (Temp_Views.IsEmpty())
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Actual size map is empty !"));
-		}
-
-		return;
-	}
-
-	if (this->CompareViews(this->MAP_Views, Temp_Views))
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Views are not changed !"));
-		}
-
-		return;
-	}
-
-	this->MAP_Views = Temp_Views;
-	const bool RetVal = UWindowSystemBPLibrary::SetBackgroundMaterial(this->MAT_BG, this->MAT_Brush, this->CanvasName, this->MAP_Views);
-
-	if (RetVal)
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Background changed successfully."));
-		}
-	}
-
-	else
-	{
-		if (this->bEnableDebugLogs)
-		{
-			UE_LOG(LogTemp, Error, TEXT("There was a problem while changing background !"));
-		}
-	}
+	
+	return OutString;
 }

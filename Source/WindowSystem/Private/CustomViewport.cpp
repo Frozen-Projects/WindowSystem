@@ -2,7 +2,6 @@
 
 #include "CustomViewport.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Engine/Canvas.h"
 #include "CanvasItem.h"
 
@@ -196,32 +195,6 @@ void UCustomViewport::Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
 
         In_SceneCanvas->DrawItem(TileItem);
     }
-}
-
-bool UCustomViewport::PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId)
-{
-    UEngine* const REF_Engine = GameInstance->GetEngine();
-    const int32 NumPlayers = REF_Engine->GetNumGamePlayers(this);
-
-    if (NumPlayers > PlayerId + 1 || ControllerId < -1)
-    {
-        return false;
-    }
-
-    int32 PlayerControllerId = 0;
-    if (ControllerId == -1)
-    {
-        PlayerControllerId = UGameplayStatics::GetPlayerControllerID(REF_Engine->GetGamePlayer(this, 0)->GetPlayerController(GEngine->GetCurrentPlayWorld()));
-    }
-
-    else
-    {
-        PlayerControllerId = ControllerId;
-    }
-
-    REF_Engine->GetGamePlayer(this, PlayerId)->SetControllerId(PlayerControllerId);
-
-    return true;
 }
 
 bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin)

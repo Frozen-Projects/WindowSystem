@@ -42,36 +42,43 @@ class WINDOWSYSTEM_API UFF_WindowSubystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
-// Hover system.
-protected:
+private:
 
-	AEachWindow_SWindow* HoveredWindow = nullptr;
-
-// Drag drop system.
-protected:
-
-	FDragDropHandler DragDropHandler;
-	virtual void AddDragDropHandlerToMV();
-	virtual void RemoveDragDropHandlerFromMV();
-
-// Color picker.
-protected:
-
-	HHOOK MouseHook_Color = NULL;
-
-// Viewport Manager.
-protected:
+#pragma region Viewport
 
 	UCustomViewport* CustomViewport = nullptr;
 	TMap<FVector2D, FVector2D> MAP_Views;
 
-	virtual bool CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
+	UFUNCTION()
 	virtual void DetectLayoutChanges();
 
 	UFUNCTION()
 	virtual void ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views);
 
-private:
+	UFUNCTION()
+	virtual bool CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
+
+#pragma endregion Viewport
+
+#pragma region Drag_Drop
+
+	FDragDropHandler DragDropHandler;
+	
+	UFUNCTION()
+	virtual void AddDragDropHandlerToMV();
+
+	UFUNCTION()
+	virtual void RemoveDragDropHandlerFromMV();
+
+#pragma endregion Drap_Drop
+
+#pragma region Color_Picker
+	HHOOK MouseHook_Color = NULL;
+#pragma endregion Color_Picker
+
+#pragma region Window_System
+	AEachWindow_SWindow* HoveredWindow = nullptr;
+#pragma endregion Window_System
 
 	void OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime);
 
@@ -94,8 +101,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
 	FName CanvasName = TEXT("Canvas");
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
-	bool bEnableDebugLogs = false;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
+	FString LastError;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
+	TMap<FString, FVector2D> ViewLayout;
 
 	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
 	FDelegateFileDrop OnFileDrop;
@@ -118,16 +128,19 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Close All Windows", Keywords = "close, all, window"), Category = "Frozen Forest|Window System|Window")
 	virtual bool CloseAllWindows();
 
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Window State", ToolTip = "", Keywords = "toggle, switch, window, state, minimize, restore, maximize"), Category = "Frozen Forest|Window System|Window")
+	virtual bool ToggleWindowState(FName InTargetWindow, bool bFlashWindow);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bring Front on Hover", ToolTip = "", Keywords = "hover, system, bring, window, front"), Category = "Frozen Forest|Window System|Window")
+	virtual bool BringFrontOnHover(AEachWindow_SWindow* TargetWindow);
+
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Color Picker", ToolTip = "It will give cursor position and color under cursor.", Keywords = "cursor, mouse, color, pixel, position, location"), Category = "Frozen Forest|Window System|Window")
 	virtual void Toggle_Color_Picker();
 
 	UFUNCTION(BlueprintPure)
 	virtual bool IsColorPickerActive();
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Window State", ToolTip = "", Keywords = "toggle, switch, window, state, minimize, restore, maximize"), Category = "Frozen Forest|Window System|Window")
-	virtual bool ToggleWindowState(FName InTargetWindow, bool bFlashWindow);
-
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bring Front on Hover", ToolTip = "", Keywords = "hover, system, bring, window, front"), Category = "Frozen Forest|Window System|Window")
-	virtual bool BringFrontOnHover(AEachWindow_SWindow* TargetWindow);
+	UFUNCTION(BlueprintPure)
+	virtual FString ViewLayoutLog();
 
 };

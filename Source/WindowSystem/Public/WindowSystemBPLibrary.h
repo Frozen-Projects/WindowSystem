@@ -50,7 +50,7 @@ class UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Save File with Dialog", ToolTip = "Each extension group must have only one extension. \nIf that group has multiple variation, you should define one by one all of them if you need them. \nAlso you need to write them as \"*.extension\".", Keywords = "save, file, dialog, windows, explorer"), Category = "Window System|File Dialog")
 	static void SaveFileDialog(FDelegateSaveFile DelegateSaveFile, const FString InDialogName, const FString InOkLabel, const FString InDefaultPath, TMap<FString, FString> InExtensions, int32 DefaultExtensionIndex, bool bIsNormalizeOutputs = true);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Posses Local Player", ToolTip = "If controller id is \"-1\", it will use main player's controller id which is probably 0. But else, it will use given index.", Keywords = "assign, new, controller, player, local"), Category = "Window System")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Posses Local Player", ToolTip = "This is customized version of UGameViewportClient::SSSwapControllers which works on Shipping Builds.\nIf controller id is \"-1\", it will use main player's controller id which is probably 0. But else, it will use given index.", Keywords = "assign, new, controller, player, local"), Category = "Window System")
 	static bool PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId = -1);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Change Player View Size", ToolTip = "", Keywords = "change, player, view, viewport, size, position, ratio"), Category = "Window System")
