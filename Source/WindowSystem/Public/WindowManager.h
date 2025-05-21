@@ -82,7 +82,7 @@ private:
 #pragma endregion Drap_Drop
 
 #pragma region Color_Picker
-	UColorPickerObject* ColorPickerObject = nullptr;
+	UColorPickerObject* LastPickedColor = nullptr;
 	HHOOK MouseHook_Color = NULL;
 #pragma endregion Color_Picker
 

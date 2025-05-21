@@ -16,7 +16,7 @@ void UFF_WindowSubystem::Deinitialize()
 	if (this->MouseHook_Color)
 	{
 		UnhookWindowsHookEx(MouseHook_Color);
-		this->ColorPickerObject = nullptr;
+		this->LastPickedColor = nullptr;
 	}
 
 	this->RemoveDragDropHandlerFromMV();
@@ -378,7 +378,7 @@ void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
 	{
 		UnhookWindowsHookEx(MouseHook_Color);
 		this->MouseHook_Color = NULL;
-		this->ColorPickerObject = nullptr;
+		this->LastPickedColor = nullptr;
 
 		bIsActive = false;
 		return;
@@ -387,7 +387,7 @@ void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
 	else
 	{
 		thread_local UColorPickerObject* ColorPickerContainer = NewObject<UColorPickerObject>();
-		this->ColorPickerObject = ColorPickerContainer;
+		this->LastPickedColor = ColorPickerContainer;
 
 		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
 			{
@@ -454,9 +454,9 @@ FString UFF_WindowSubystem::ViewLayoutLog()
 
 void UFF_WindowSubystem::GetLastPickedColorPos(FVector2D& Position, FLinearColor& Color)
 {
-	if (this->ColorPickerObject)
+	if (this->LastPickedColor)
 	{
-		Position = this->ColorPickerObject->Position;
-		Color = this->ColorPickerObject->Color;
+		Position = this->LastPickedColor->Position;
+		Color = this->LastPickedColor->Color;
 	}
 }
