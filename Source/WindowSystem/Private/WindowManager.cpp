@@ -13,15 +13,16 @@ void UFF_WindowSubystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UFF_WindowSubystem::Deinitialize()
 {
-	Super::Deinitialize();
+	if (this->MouseHook_Color)
+	{
+		UnhookWindowsHookEx(MouseHook_Color);
+		this->ColorPickerObject = nullptr;
+	}
 
 	this->RemoveDragDropHandlerFromMV();
 	this->CloseAllWindows();
 
-	if (this->MouseHook_Color)
-	{
-		UnhookWindowsHookEx(MouseHook_Color);
-	}
+	Super::Deinitialize();
 }
 
 void UFF_WindowSubystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime)
@@ -35,6 +36,7 @@ void UFF_WindowSubystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, fl
 			this->DetectLayoutChanges();
 		}
 
+		// We need to addd handler at every tick.
 		this->AddDragDropHandlerToMV();
 	}
 }
@@ -50,17 +52,55 @@ void UFF_WindowSubystem::AddDragDropHandlerToMV()
 
 	DragAcceptFiles(WindowHandle, true);
 
-	FWindowsApplication* WindowApplication = (FWindowsApplication*)FSlateApplication::Get().GetPlatformApplication().Get();
+	FSlateApplication& SlateApplication = FSlateApplication::Get();
 
-	if (WindowApplication)
+	if (!SlateApplication.IsInitialized())
 	{
-		WindowApplication->AddMessageHandler(DragDropHandler);
+		return;
+	}
+
+	if (!SlateApplication.IsActive())
+	{
+		return;
+	}
+
+	TSharedPtr<GenericApplication> GenericApp = SlateApplication.GetPlatformApplication();
+
+	if (!GenericApp.IsValid())
+	{
+		return;
+	}
+
+	FWindowsApplication* WindowsApplication = (FWindowsApplication*)GenericApp.Get();
+
+	if (WindowsApplication)
+	{
+		WindowsApplication->AddMessageHandler(DragDropHandler);
 	}
 }
 
 void UFF_WindowSubystem::RemoveDragDropHandlerFromMV()
 {
-	FWindowsApplication* WindowsApplication = (FWindowsApplication*)FSlateApplication::Get().GetPlatformApplication().Get();
+	FSlateApplication& SlateApplication = FSlateApplication::Get();
+
+	if (!SlateApplication.IsInitialized())
+	{
+		return;
+	}
+
+	if (!SlateApplication.IsActive())
+	{
+		return;
+	}
+
+	TSharedPtr<GenericApplication> GenericApp = SlateApplication.GetPlatformApplication();
+
+	if (!GenericApp.IsValid())
+	{
+		return;
+	}
+
+	FWindowsApplication* WindowsApplication = (FWindowsApplication*)GenericApp.Get();
 
 	if (WindowsApplication)
 	{
@@ -332,42 +372,46 @@ bool UFF_WindowSubystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 	return true;
 }
 
-void UFF_WindowSubystem::Toggle_Color_Picker()
+void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
 {
 	if (this->MouseHook_Color)
 	{
 		UnhookWindowsHookEx(MouseHook_Color);
 		this->MouseHook_Color = NULL;
+		this->ColorPickerObject = nullptr;
+
+		bIsActive = false;
+		return;
 	}
 
 	else
 	{
-		thread_local UFF_WindowSubystem* WindowSubsystem = this;
+		thread_local UColorPickerObject* ColorPickerContainer = NewObject<UColorPickerObject>();
+		this->ColorPickerObject = ColorPickerContainer;
 
 		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
 			{
-				if (wParam == WM_LBUTTONDOWN && IsValid(WindowSubsystem))
+				if (wParam == WM_LBUTTONDOWN)
 				{
 					HWND ScreenHandle = GetDesktopWindow();
+
 					if (!ScreenHandle)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Screen Handle"));
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Handle is not valid !"));
 						return CallNextHookEx(0, nCode, wParam, lParam);
 					}
 
 					HDC ScreenContext = GetDC(ScreenHandle);
 					if (!ScreenContext)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Screen Context"));
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Context is not valid !"));
 						return CallNextHookEx(0, nCode, wParam, lParam);
 					}
 
 					POINT RawPos;
-					bool GotCursorPos = GetCursorPos(&RawPos);
-					if (!GotCursorPos)
+					if (!GetCursorPos(&RawPos))
 					{
 						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Got Cursor Pos : %d"), GetLastError());
-						return CallNextHookEx(0, nCode, wParam, lParam);
 					}
 
 					COLORREF RawColor = GetPixel(ScreenContext, RawPos.x, RawPos.y);
@@ -377,14 +421,17 @@ void UFF_WindowSubystem::Toggle_Color_Picker()
 					PositionColor.B = GetBValue(RawColor);
 					PositionColor.A = 255;
 
+					ColorPickerContainer->Color = PositionColor;
+					ColorPickerContainer->Position = FVector2D(RawPos.x, RawPos.y);
+
 					ReleaseDC(ScreenHandle, ScreenContext);
-					WindowSubsystem->OnCursorPosColor.Broadcast(FVector2D(RawPos.x, RawPos.y), PositionColor);
 				}
 
 				return CallNextHookEx(0, nCode, wParam, lParam);
 			};
 
 		this->MouseHook_Color = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
+		bIsActive = true;
 	}
 }
 
@@ -403,4 +450,13 @@ FString UFF_WindowSubystem::ViewLayoutLog()
 	}
 	
 	return OutString;
+}
+
+void UFF_WindowSubystem::GetLastPickedColorPos(FVector2D& Position, FLinearColor& Color)
+{
+	if (this->ColorPickerObject)
+	{
+		Position = this->ColorPickerObject->Position;
+		Color = this->ColorPickerObject->Color;
+	}
 }

@@ -23,7 +23,7 @@ void AEachWindow_SWindow::BeginPlay()
 {
 	Super::BeginPlay();
 
-	this->WindowSubsystem = GEngine->GetCurrentPlayWorld()->GetSubsystem<UFF_WindowSubystem>();
+	this->WindowSubsystem = GEngine->GetCurrentPlayWorld()->GetGameInstance()->GetSubsystem<UFF_WindowSubystem>();
 
 	if (!IsValid(WindowSubsystem))
 	{

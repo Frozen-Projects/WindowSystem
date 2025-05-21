@@ -17,7 +17,7 @@ bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, 
 		return false;
 	}
 
-	UFF_WindowSubystem* WindowSubsystem = World->GetSubsystem<UFF_WindowSubystem>();
+	UFF_WindowSubystem* WindowSubsystem = World->GetGameInstance()->GetSubsystem<UFF_WindowSubystem>();
 
 	if (!IsValid(WindowSubsystem))
 	{
