@@ -13,6 +13,9 @@
 #include "Runtime/UMG/Public/UMG.h"         // Take Screenshot of Window
 #include "Blueprint/UserWidget.h"
 
+#include "Misc/Optional.h"
+#include "Framework/Application/SWindowTitleBar.h"
+
 // Custom Includes.
 #include "WindowEnums.h"
 #include "CustomViewport.h"

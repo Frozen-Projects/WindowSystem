@@ -9,11 +9,6 @@ public class WindowSystem : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        if (UnrealTargetPlatform.Win64 == Target.Platform)
-        {
-
-        }
-
         PublicDependencyModuleNames.AddRange(
 			new string[]
 			{

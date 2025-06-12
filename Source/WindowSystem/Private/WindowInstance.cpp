@@ -2,9 +2,6 @@
 
 #include "WindowInstance.h"
 
-// UE Includes.
-#include "Framework/Application/SWindowTitleBar.h"
-
 // Sets default values.
 AEachWindow_SWindow::AEachWindow_SWindow()
 {
