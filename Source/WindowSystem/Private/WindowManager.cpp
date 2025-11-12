@@ -8,7 +8,7 @@
 void UFF_WindowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubsystem::OnWorldTickStart);
+	this->TickStartHandle = FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubsystem::OnWorldTickStart);
 }
 
 void UFF_WindowSubsystem::Deinitialize()
@@ -35,10 +35,21 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 
 	if (IsValid(this->CustomViewport))
 	{
-		this->DetectLayoutChanges();
+		this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
+			{
+				this->ChangeBackgroundOnNewPlayer(Views);
+				this->OnLayoutChanged.Broadcast(Views);
+			}
+		);
 	}
 
 	this->AddDragDropHandlerToMV();
+
+	if (this->TickStartHandle.IsValid())
+	{
+		FWorldDelegates::OnWorldTickStart.Remove(TickStartHandle);
+		TickStartHandle.Reset();
+	}
 }
 
 void UFF_WindowSubsystem::AddDragDropHandlerToMV()
@@ -126,21 +137,6 @@ bool UFF_WindowSubsystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVecto
 	{
 		return false;
 	}
-}
-
-void UFF_WindowSubsystem::DetectLayoutChanges()
-{
-	if (!this->CustomViewport)
-	{
-		return;
-	}
-
-	this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
-		{
-			this->ChangeBackgroundOnNewPlayer(Views);
-			this->OnLayoutChanged.Broadcast(Views);
-		}
-	);
 }
 
 void UFF_WindowSubsystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views)

@@ -182,8 +182,6 @@ void UCustomViewport::Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
 {
     Super::Draw(In_Viewport, In_SceneCanvas);
 
-    // Put your logic to change background after Super::Draw()
-
     if (IsValid(this->BG_Material) && this->BG_Material->GetRenderProxy() && !this->bStopBackground)
     {
         const FVector2D RectSize = In_Viewport->GetSizeXY();

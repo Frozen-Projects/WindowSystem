@@ -48,11 +48,8 @@ public:
 	UCustomViewport();
 
     virtual void Tick(float DeltaTime) override;
-
     virtual void UpdateActiveSplitscreenType() override;
-
     virtual void LayoutPlayers() override;
-
     virtual void Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas) override;
 
     FDelegateNewLayout DelegateNewLayout;

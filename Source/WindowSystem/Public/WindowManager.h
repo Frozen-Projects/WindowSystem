@@ -66,11 +66,10 @@ private:
 	UPROPERTY()
 	AEachWindow_SWindow* HoveredWindow = nullptr;
 
+	FDelegateHandle TickStartHandle;
 	FDragDropHandler DragDropHandler;
-
 	HHOOK MouseHook_Color = NULL;
 
-	virtual void DetectLayoutChanges();
 	virtual void ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views);
 	virtual bool CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
 	virtual void AddDragDropHandlerToMV();
