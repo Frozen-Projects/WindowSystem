@@ -1,6 +1,22 @@
 #include "DragDropHandler.h"
 #include "WindowManager.h"
 
+int32 FDragDropHandler::GetWindowsBuildNumber()
+{
+	HKEY hKey;
+	const LONG Result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey);
+	DWORD BufferSize;
+	RegQueryValueEx(hKey, L"CurrentBuildNumber", 0, nullptr, NULL, &BufferSize);
+	TCHAR* Buffer = (TCHAR*)malloc(BufferSize);
+	RegQueryValueEx(hKey, L"CurrentBuildNumber", 0, nullptr, reinterpret_cast<LPBYTE>(Buffer), &BufferSize);
+	const int32 BuildNumber = FCString::Atoi(Buffer);
+
+	free(Buffer);
+	Buffer = nullptr;
+
+	return BuildNumber;
+}
+
 bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, LPARAM LParam, int32& OutResult)
 {
 	TObjectPtr<UGameViewportClient> Viewport = GEngine->GameViewport;
@@ -17,7 +33,7 @@ bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, 
 		return false;
 	}
 
-	UFF_WindowSubystem* WindowSubsystem = World->GetGameInstance()->GetSubsystem<UFF_WindowSubystem>();
+	UFF_WindowSubsystem* WindowSubsystem = World->GetGameInstance()->GetSubsystem<UFF_WindowSubsystem>();
 
 	if (!IsValid(WindowSubsystem))
 	{
@@ -26,25 +42,11 @@ bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, 
 
 	HWND MainWindowHandle;
 	HDROP DropInfo = (HDROP)WParam;
-
-	// Drop Location.
 	POINT DropLocation;
-
-	// Out Structure.
 	FDroppedFileStruct DropFileStruct;
 	TArray<FDroppedFileStruct> OutArray;
 
-	// Read Regedit To Get Windows Build Number.
-	HKEY hKey;
-	LONG Result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey);
-	DWORD BufferSize;
-	RegQueryValueEx(hKey, L"CurrentBuildNumber", 0, nullptr, NULL, &BufferSize);
-	TCHAR* Buffer = (TCHAR*)malloc(BufferSize);
-	RegQueryValueEx(hKey, L"CurrentBuildNumber", 0, nullptr, reinterpret_cast<LPBYTE>(Buffer), &BufferSize);
-	int32 BuildNumber = FCString::Atoi(Buffer);
-	
-	free(Buffer);
-	Buffer = nullptr;
+	const int32 BuildNumber = FDragDropHandler::GetWindowsBuildNumber();
 
 	switch (Message)
 	{
@@ -55,13 +57,6 @@ bool FDragDropHandler::ProcessMessage(HWND Hwnd, uint32 Message, WPARAM WParam, 
 		{
 			if (BuildNumber >= 22000)
 			{
-				/*
-					* Window Roundness Preference.
-					* DWMWCP_DEFAULT = 0
-					* DWMWCP_DONOTROUND = 1
-					* DWMWCP_ROUND = 2
-					* DWMWCP_ROUNDSMALL = 3
-				*/
 				DWM_WINDOW_CORNER_PREFERENCE preference = DWMWCP_ROUND;
 				DwmSetWindowAttribute(Hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 			}

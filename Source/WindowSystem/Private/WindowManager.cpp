@@ -5,18 +5,17 @@
 // Custom Includes.
 #include "WindowInstance.h"		// CloseAllWindows -> Destrow window actor.
 
-void UFF_WindowSubystem::Initialize(FSubsystemCollectionBase& Collection)
+void UFF_WindowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubystem::OnWorldTickStart);
+	FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubsystem::OnWorldTickStart);
 }
 
-void UFF_WindowSubystem::Deinitialize()
+void UFF_WindowSubsystem::Deinitialize()
 {
 	if (this->MouseHook_Color)
 	{
 		UnhookWindowsHookEx(MouseHook_Color);
-		this->LastPickedColor = nullptr;
 	}
 
 	this->RemoveDragDropHandlerFromMV();
@@ -25,41 +24,32 @@ void UFF_WindowSubystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UFF_WindowSubystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime)
+void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime)
 {
-	if (IsValid(World))
-	{
-		this->CustomViewport = Cast<UCustomViewport>(GEngine->GameViewport.Get());
-
-		if (IsValid(this->CustomViewport))
-		{
-			this->DetectLayoutChanges();
-		}
-
-		// We need to addd handler at every tick.
-		this->AddDragDropHandlerToMV();
-	}
-}
-
-void UFF_WindowSubystem::AddDragDropHandlerToMV()
-{
-	if (!this->CustomViewport)
+	if (!IsValid(World))
 	{
 		return;
 	}
 
-	HWND WindowHandle = reinterpret_cast<HWND>(this->CustomViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
+	this->CustomViewport = Cast<UCustomViewport>(GEngine->GameViewport.Get());
+
+	if (IsValid(this->CustomViewport))
+	{
+		this->DetectLayoutChanges();
+	}
+
+	this->AddDragDropHandlerToMV();
+}
+
+void UFF_WindowSubsystem::AddDragDropHandlerToMV()
+{
+	HWND WindowHandle = reinterpret_cast<HWND>(GEngine->GameViewport.Get()->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
 
 	DragAcceptFiles(WindowHandle, true);
 
 	FSlateApplication& SlateApplication = FSlateApplication::Get();
 
-	if (!SlateApplication.IsInitialized())
-	{
-		return;
-	}
-
-	if (!SlateApplication.IsActive())
+	if (!SlateApplication.IsInitialized() || !SlateApplication.IsActive())
 	{
 		return;
 	}
@@ -79,7 +69,7 @@ void UFF_WindowSubystem::AddDragDropHandlerToMV()
 	}
 }
 
-void UFF_WindowSubystem::RemoveDragDropHandlerFromMV()
+void UFF_WindowSubsystem::RemoveDragDropHandlerFromMV()
 {
 	FSlateApplication& SlateApplication = FSlateApplication::Get();
 
@@ -108,7 +98,7 @@ void UFF_WindowSubystem::RemoveDragDropHandlerFromMV()
 	}
 }
 
-bool UFF_WindowSubystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
+bool UFF_WindowSubsystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
 {
 	if (A.Num() != B.Num())
 	{
@@ -138,7 +128,7 @@ bool UFF_WindowSubystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector
 	}
 }
 
-void UFF_WindowSubystem::DetectLayoutChanges()
+void UFF_WindowSubsystem::DetectLayoutChanges()
 {
 	if (!this->CustomViewport)
 	{
@@ -153,7 +143,7 @@ void UFF_WindowSubystem::DetectLayoutChanges()
 	);
 }
 
-void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views)
+void UFF_WindowSubsystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views)
 {
 	if (!this->CustomViewport)
 	{
@@ -200,6 +190,7 @@ void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const&
 	{
 		const FVector2D ActualPosition = ViewportSize * Each_View.Position;
 		const FVector2D ActualSize = ViewportSize * Each_View.Size;
+		Temp_Views.Add(ActualPosition, ActualSize);
 
 		TMap<FString, FVector2D> Temp_ViewLayout;
 		Temp_ViewLayout.Add("Full Size", ViewportSize);
@@ -207,9 +198,7 @@ void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const&
 		Temp_ViewLayout.Add("Actual Size", ActualSize);
 		Temp_ViewLayout.Add("UV Position", Each_View.Position);
 		Temp_ViewLayout.Add("UV Size", Each_View.Size);
-		this->ViewLayout = Temp_ViewLayout;
-
-		Temp_Views.Add(ActualPosition, ActualSize);
+		this->ViewLayout = MoveTemp(Temp_ViewLayout);
 	}
 
 	if (Temp_Views.IsEmpty())
@@ -224,7 +213,7 @@ void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const&
 		return;
 	}
 
-	this->MAP_Views = Temp_Views;
+	this->MAP_Views = MoveTemp(Temp_Views);
 	const bool RetVal = UWindowSystemBPLibrary::SetBackgroundMaterial(this->MAT_BG, this->MAT_Brush, this->CanvasName, this->MAP_Views);
 
 	if (!RetVal)
@@ -233,7 +222,7 @@ void UFF_WindowSubystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const&
 	}
 }
 
-bool UFF_WindowSubystem::CloseAllWindows()
+bool UFF_WindowSubsystem::CloseAllWindows()
 {
 	if (this->MAP_Windows.IsEmpty())
 	{
@@ -253,7 +242,7 @@ bool UFF_WindowSubystem::CloseAllWindows()
 	return true;
 }
 
-bool UFF_WindowSubystem::ToggleWindowState(FName InTargetWindow, bool bFlashWindow)
+bool UFF_WindowSubsystem::ToggleWindowState(FName InTargetWindow, bool bFlashWindow)
 {
 	if (InTargetWindow.IsNone())
 	{
@@ -333,7 +322,7 @@ bool UFF_WindowSubystem::ToggleWindowState(FName InTargetWindow, bool bFlashWind
 	}
 }
 
-bool UFF_WindowSubystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
+bool UFF_WindowSubsystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 {
 	if (!TargetWindow)
 	{
@@ -372,13 +361,12 @@ bool UFF_WindowSubystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 	return true;
 }
 
-void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
+void UFF_WindowSubsystem::Toggle_Color_Picker(bool& bIsActive)
 {
 	if (this->MouseHook_Color)
 	{
 		UnhookWindowsHookEx(MouseHook_Color);
 		this->MouseHook_Color = NULL;
-		this->LastPickedColor = nullptr;
 
 		bIsActive = false;
 		return;
@@ -386,8 +374,7 @@ void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
 
 	else
 	{
-		thread_local UColorPickerObject* ColorPickerContainer = NewObject<UColorPickerObject>();
-		this->LastPickedColor = ColorPickerContainer;
+		thread_local FColorPickerStruct ColorPickerContainer = FColorPickerStruct();
 
 		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
 			{
@@ -421,8 +408,8 @@ void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
 					PositionColor.B = GetBValue(RawColor);
 					PositionColor.A = 255;
 
-					ColorPickerContainer->Color = PositionColor;
-					ColorPickerContainer->Position = FVector2D(RawPos.x, RawPos.y);
+					ColorPickerContainer.Color = PositionColor;
+					ColorPickerContainer.Position = FVector2D(RawPos.x, RawPos.y);
 
 					ReleaseDC(ScreenHandle, ScreenContext);
 				}
@@ -430,17 +417,19 @@ void UFF_WindowSubystem::Toggle_Color_Picker(bool& bIsActive)
 				return CallNextHookEx(0, nCode, wParam, lParam);
 			};
 
+		this->LastPickedColor = MoveTemp(ColorPickerContainer);
+
 		this->MouseHook_Color = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
 		bIsActive = true;
 	}
 }
 
-bool UFF_WindowSubystem::IsColorPickerActive()
+bool UFF_WindowSubsystem::IsColorPickerActive()
 {
 	return this->MouseHook_Color ? true : false;
 }
 
-FString UFF_WindowSubystem::ViewLayoutLog()
+FString UFF_WindowSubsystem::ViewLayoutLog()
 {
 	FString OutString = "";
 	
@@ -450,13 +439,4 @@ FString UFF_WindowSubystem::ViewLayoutLog()
 	}
 	
 	return OutString;
-}
-
-void UFF_WindowSubystem::GetLastPickedColorPos(FVector2D& Position, FLinearColor& Color)
-{
-	if (this->LastPickedColor)
-	{
-		Position = this->LastPickedColor->Position;
-		Color = this->LastPickedColor->Color;
-	}
 }

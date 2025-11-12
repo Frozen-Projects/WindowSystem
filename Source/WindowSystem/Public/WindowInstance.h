@@ -17,7 +17,8 @@ class WINDOWSYSTEM_API AEachWindow_SWindow : public AActor
 	
 private:
 
-	UFF_WindowSubystem* WindowSubsystem = nullptr;
+	UPROPERTY()
+	UFF_WindowSubsystem* WindowSubsystem = nullptr;
 
 protected:
 

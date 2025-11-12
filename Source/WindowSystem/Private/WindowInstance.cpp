@@ -20,16 +20,16 @@ void AEachWindow_SWindow::BeginPlay()
 {
 	Super::BeginPlay();
 
-	this->WindowSubsystem = GEngine->GetCurrentPlayWorld()->GetGameInstance()->GetSubsystem<UFF_WindowSubystem>();
+	this->WindowSubsystem = GEngine->GetCurrentPlayWorld()->GetGameInstance()->GetSubsystem<UFF_WindowSubsystem>();
 
-	if (!IsValid(WindowSubsystem))
+	if (!IsValid(this->WindowSubsystem))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"Manager\" are not valid for: %s"), *FString(WindowTag.ToString()));
 		this->Destroy();
 		return;
 	}
 
-	if (!IsValid(ContentWidget))
+	if (!IsValid(this->ContentWidget))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"ContentWidget\" are not valid for: %s"), *FString(WindowTag.ToString()));
 		this->Destroy();
@@ -45,7 +45,7 @@ void AEachWindow_SWindow::BeginPlay()
 	}
 
 	// Add created window actor class to the list.
-	WindowSubsystem->MAP_Windows.Add(WindowTag, this);
+	this->WindowSubsystem->MAP_Windows.Add(WindowTag, this);
 
 	// Start window hover detection.
 

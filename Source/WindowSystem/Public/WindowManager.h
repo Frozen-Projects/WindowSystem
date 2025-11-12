@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/GameInstanceSubsystem.h"
 
 // Custom Includes.
 #include "DragDropHandler.h"
@@ -12,13 +12,17 @@
 
 class AEachWindow_SWindow;
 
-UCLASS()
-class WINDOWSYSTEM_API UColorPickerObject : public UObject
+USTRUCT(BlueprintType)
+struct WINDOWSYSTEM_API FColorPickerStruct
 {
 	GENERATED_BODY()
 
 public:
+
+	UPROPERTY(BlueprintReadOnly)
 	FVector2D Position;
+
+	UPROPERTY(BlueprintReadOnly)
 	FLinearColor Color;
 };
 
@@ -47,53 +51,35 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowHovered, AEachWindow_
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateLayoutChanged, const TArray<FPlayerViews>&, Out_Views);
 
 UCLASS()
-class WINDOWSYSTEM_API UFF_WindowSubystem : public UGameInstanceSubsystem
+class WINDOWSYSTEM_API UFF_WindowSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
 private:
 
-#pragma region Viewport
-
+	UPROPERTY()
 	UCustomViewport* CustomViewport = nullptr;
+
+	UPROPERTY()
 	TMap<FVector2D, FVector2D> MAP_Views;
 
-	UFUNCTION()
-	virtual void DetectLayoutChanges();
-
-	UFUNCTION()
-	virtual void ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views);
-
-	UFUNCTION()
-	virtual bool CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
-
-#pragma endregion Viewport
-
-#pragma region Drag_Drop
+	UPROPERTY()
+	AEachWindow_SWindow* HoveredWindow = nullptr;
 
 	FDragDropHandler DragDropHandler;
-	
-	UFUNCTION()
-	virtual void AddDragDropHandlerToMV();
 
-	UFUNCTION()
-	virtual void RemoveDragDropHandlerFromMV();
-
-#pragma endregion Drap_Drop
-
-#pragma region Color_Picker
-	UColorPickerObject* LastPickedColor = nullptr;
 	HHOOK MouseHook_Color = NULL;
-#pragma endregion Color_Picker
 
-#pragma region Window_System
-	AEachWindow_SWindow* HoveredWindow = nullptr;
-#pragma endregion Window_System
-
-	void OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime);
+	virtual void DetectLayoutChanges();
+	virtual void ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views);
+	virtual bool CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
+	virtual void AddDragDropHandlerToMV();
+	virtual void RemoveDragDropHandlerFromMV();
+	virtual void OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime);
 
 public:
 
+	UPROPERTY()
 	TMap<FName, AEachWindow_SWindow*> MAP_Windows;
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -116,6 +102,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
 	TMap<FString, FVector2D> ViewLayout;
+
+	UPROPERTY(BlueprintReadOnly)
+	FColorPickerStruct LastPickedColor;
 
 	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
 	FDelegateFileDrop OnFileDrop;
@@ -149,8 +138,5 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	virtual FString ViewLayoutLog();
-
-	UFUNCTION(BlueprintPure)
-	void GetLastPickedColorPos(FVector2D& Position, FLinearColor& Color);
 
 };
