@@ -399,14 +399,9 @@ bool UWindowSystemBPLibrary::ToggleWidgetState(UWidget* TargetWidget, ESlateVisi
 	}
 }
 
-bool UWindowSystemBPLibrary::SetBackgroundMaterial(UMaterialInterface* MAT_BG, UMaterialInterface* MAT_Brush, FName CRT_Name, TMap<FVector2D, FVector2D> Views)
+bool UWindowSystemBPLibrary::SetBackgroundMaterial_BP(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Brush, FName In_CRT_Name)
 {
-	if (Views.IsEmpty())
-	{
-		return false;
-	}
-
-	if (!IsValid(MAT_BG) || !IsValid(MAT_Brush))
+	if (!IsValid(In_MAT_BG) || !IsValid(In_MAT_Brush) || In_CRT_Name.IsNone())
 	{
 		return false;
 	}
@@ -418,44 +413,7 @@ bool UWindowSystemBPLibrary::SetBackgroundMaterial(UMaterialInterface* MAT_BG, U
 		return false;
 	}
 
-	UWorld* World = GEngine->GetCurrentPlayWorld();
-
-	if (!IsValid(World))
-	{
-		return false;
-	}
-
-	FVector2D CRT_Size;
-	CustomViewport->GetViewportSize(CRT_Size);
-
-	if (CRT_Size == FVector2D(0.f))
-	{
-		return false;
-	}
-
-	UCanvasRenderTarget2D* CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(World, UCanvasRenderTarget2D::StaticClass(), CRT_Size.X, CRT_Size.Y);
-
-	if (!IsValid(CRT))
-	{
-		return false;
-	}
-
-	UCanvas* Canvas = nullptr;
-	FVector2D Size = FVector2D();
-	FDrawToRenderTargetContext Context = FDrawToRenderTargetContext();
-	UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(World, CRT, Canvas, Size, Context);
-
-	for (const TPair<FVector2D, FVector2D> Each_View : Views)
-	{
-		Canvas->K2_DrawMaterial(MAT_Brush, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
-	}
-
-	UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(World, Context);
-
-	UMaterialInstanceDynamic* MI_BG = UMaterialInstanceDynamic::Create(MAT_BG, World);
-	MI_BG->SetTextureParameterValue(CRT_Name, CRT);
-
-	return CustomViewport->SetBackgrounMaterial(MI_BG);
+	return CustomViewport->SetBackgroundMaterial(In_MAT_BG, In_MAT_Brush, In_CRT_Name);
 }
 
 bool UWindowSystemBPLibrary::ToggleBackground(bool bStop)

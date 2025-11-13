@@ -4,6 +4,7 @@
 
 #include "Engine/Canvas.h"
 #include "CanvasItem.h"
+#include "Materials/MaterialRenderProxy.h"
 
 UCustomViewport::UCustomViewport() : Super(FObjectInitializer::Get())
 {
@@ -33,7 +34,7 @@ void UCustomViewport::LayoutPlayers()
         return;
     }
 
-    TArray<FPlayerViews> Array_Views;
+    TArray<FPlayerViews> Temp_Views;
 
     if (Player_Count == 1)
     {
@@ -53,10 +54,15 @@ void UCustomViewport::LayoutPlayers()
             FPlayerViews View;
             View.Size = PlayerList[PlayerIdx]->Size;
             View.Position = (PlayerList[PlayerIdx]->Origin);
-            Array_Views.Add(View);
+            Temp_Views.Add(View);
         }
 
-        DelegateNewLayout.Broadcast(Array_Views);
+        if (this->View_Ratios.Num() != Temp_Views.Num())
+        {
+            this->View_Ratios = MoveTemp(Temp_Views);
+            DelegateNewLayout.Broadcast(this->View_Ratios);
+        }
+
         return;
     }
 
@@ -85,10 +91,15 @@ void UCustomViewport::LayoutPlayers()
             FPlayerViews View;
             View.Size = PlayerList[PlayerIdx]->Size;
             View.Position = (PlayerList[PlayerIdx]->Origin);
-            Array_Views.Add(View);
+            Temp_Views.Add(View);
         }
 
-        DelegateNewLayout.Broadcast(Array_Views);
+        if (this->View_Ratios.Num() != Temp_Views.Num())
+        {
+            this->View_Ratios = MoveTemp(Temp_Views);
+            DelegateNewLayout.Broadcast(this->View_Ratios);
+        }
+
         return;
     }
 
@@ -122,10 +133,15 @@ void UCustomViewport::LayoutPlayers()
             FPlayerViews View;
             View.Size = PlayerList[PlayerIdx]->Size;
             View.Position = (PlayerList[PlayerIdx]->Origin);
-            Array_Views.Add(View);
+            Temp_Views.Add(View);
         }
 
-        DelegateNewLayout.Broadcast(Array_Views);
+        if (this->View_Ratios.Num() != Temp_Views.Num())
+        {
+            this->View_Ratios = MoveTemp(Temp_Views);
+            DelegateNewLayout.Broadcast(this->View_Ratios);
+        }
+
         return;
     }
 
@@ -164,10 +180,15 @@ void UCustomViewport::LayoutPlayers()
             FPlayerViews View;
             View.Size = PlayerList[PlayerIdx]->Size;
             View.Position = (PlayerList[PlayerIdx]->Origin);
-            Array_Views.Add(View);
+            Temp_Views.Add(View);
         }
 
-        DelegateNewLayout.Broadcast(Array_Views);
+        if (this->View_Ratios.Num() != Temp_Views.Num())
+        {
+            this->View_Ratios = MoveTemp(Temp_Views);
+            DelegateNewLayout.Broadcast(this->View_Ratios);
+        }
+
         return;
     }
 
@@ -181,18 +202,103 @@ void UCustomViewport::LayoutPlayers()
 void UCustomViewport::Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
 {
     Super::Draw(In_Viewport, In_SceneCanvas);
+    this->CalculateBackground(In_Viewport, In_SceneCanvas);
+}
 
-    if (IsValid(this->BG_Material) && this->BG_Material->GetRenderProxy() && !this->bStopBackground)
+bool UCustomViewport::ComparePixels(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
+{
+    if (A.Num() != B.Num())
     {
-        const FVector2D RectSize = In_Viewport->GetSizeXY();
-        const FVector2D UV_Top_Left = FVector2D(0.0f, 0.0f);
-        const FVector2D UV_Bottom_Right = FVector2D(1.0f, 1.0f);
-
-        FCanvasTileItem TileItem(FVector2D(0, 0), this->BG_Material->GetRenderProxy(), RectSize, UV_Top_Left, UV_Bottom_Right);
-        TileItem.BlendMode = SE_BLEND_Opaque;
-
-        In_SceneCanvas->DrawItem(TileItem);
+        return false;
     }
+
+    TArray<FVector2D> A_Keys;
+    A.GenerateKeyArray(A_Keys);
+
+    TArray<FVector2D> A_Values;
+    A.GenerateValueArray(A_Values);
+
+    TArray<FVector2D> B_Keys;
+    B.GenerateKeyArray(B_Keys);
+
+    TArray<FVector2D> B_Values;
+    B.GenerateValueArray(B_Values);
+
+    if (A_Keys == B_Keys && A_Values == B_Values)
+    {
+        return true;
+    }
+
+    else
+    {
+        return false;
+    }
+}
+
+void UCustomViewport::InitTextures()
+{
+    FVector2D ViewportSize = FVector2D();
+    this->GetViewportSize(ViewportSize);
+
+    this->CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(World, UCanvasRenderTarget2D::StaticClass(), ViewportSize.X, ViewportSize.Y);
+
+    this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
+    this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
+}
+
+void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
+{
+    if (this->bStopBackground)
+    {
+        return;
+    }
+
+    if (!IsValid(this->World) || !IsValid(this->MAT_BG) || !IsValid(this->MAT_Brush) || CRT_Name.IsNone())
+    {
+        return;
+    }
+
+    FVector2D ViewportSize = FVector2D(In_Viewport->GetSizeXY());
+    if (ViewportSize == FVector2D(0.f))
+	{
+        return;
+	}
+
+    TMap<FVector2D, FVector2D> Temp_Views;
+    for (const FPlayerViews Each_View : this->View_Ratios)
+    {
+        const FVector2D ActualPosition = ViewportSize * Each_View.Position;
+        const FVector2D ActualSize = ViewportSize * Each_View.Size;
+        Temp_Views.Add(ActualPosition, ActualSize);
+    }
+
+    if (!this->ComparePixels(Temp_Views, this->Old_View))
+    {
+        this->Old_View = Temp_Views;
+		this->InitTextures();
+	}
+
+    FDrawToRenderTargetContext Context;
+    UCanvas* Canvas = nullptr;
+    FVector2D Size;
+    UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this->World, this->CRT, Canvas, Size, Context);
+
+    for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
+    {
+        Canvas->K2_DrawMaterial(MAT_Brush, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
+    }
+
+    UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
+
+    FCanvasTileItem TileItem(FVector2D(0, 0), this->MI_BG->GetRenderProxy(), ViewportSize, FVector2D(0.f, 0.f), FVector2D(1.f, 1.f));
+    TileItem.BlendMode = SE_BLEND_Opaque;
+
+    In_SceneCanvas->DrawItem(TileItem);
+}
+
+void UCustomViewport::ToggleBackground(bool bStop)
+{
+    this->bStopBackground = bStop;
 }
 
 bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin)
@@ -212,28 +318,18 @@ bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRa
     return true;
 }
 
-bool UCustomViewport::SetBackgrounMaterial(UMaterialInterface* In_Material)
+bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Brush, FName In_CRT_Name)
 {
-    if (!IsValid(In_Material))
+    if (!IsValid(this->World) || !IsValid(In_MAT_BG) || !IsValid(In_MAT_Brush) || In_CRT_Name.IsNone())
     {
         return false;
     }
 
-    this->BG_Material = In_Material;
-    return true;
-}
+	this->MAT_BG = In_MAT_BG;
+	this->MAT_Brush = In_MAT_Brush;
+	this->CRT_Name = In_CRT_Name;
 
-UMaterialInterface* UCustomViewport::GetBackgroundMaterial()
-{
-    if (!IsValid(this->BG_Material))
-    {
-        return nullptr;
-    }
+	this->InitTextures();
 
-    return this->BG_Material;
-}
-
-void UCustomViewport::ToggleBackground(bool bStop)
-{
-    this->bStopBackground = bStop;
+	return true;
 }

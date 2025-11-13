@@ -8,7 +8,7 @@
 void UFF_WindowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	this->TickStartHandle = FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubsystem::OnWorldTickStart);
+	this->WorldTickStartHandle = FWorldDelegates::OnWorldTickStart.AddUObject(this, &UFF_WindowSubsystem::OnWorldTickStart);
 }
 
 void UFF_WindowSubsystem::Deinitialize()
@@ -37,7 +37,6 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 	{
 		this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
 			{
-				this->ChangeBackgroundOnNewPlayer(Views);
 				this->OnLayoutChanged.Broadcast(Views);
 			}
 		);
@@ -45,10 +44,10 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 
 	this->AddDragDropHandlerToMV();
 
-	if (this->TickStartHandle.IsValid())
+	if (this->WorldTickStartHandle.IsValid())
 	{
-		FWorldDelegates::OnWorldTickStart.Remove(TickStartHandle);
-		TickStartHandle.Reset();
+		FWorldDelegates::OnWorldTickStart.Remove(this->WorldTickStartHandle);
+		this->WorldTickStartHandle.Reset();
 	}
 }
 
@@ -106,115 +105,6 @@ void UFF_WindowSubsystem::RemoveDragDropHandlerFromMV()
 	if (WindowsApplication)
 	{
 		WindowsApplication->RemoveMessageHandler(DragDropHandler);
-	}
-}
-
-bool UFF_WindowSubsystem::CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
-{
-	if (A.Num() != B.Num())
-	{
-		return false;
-	}
-
-	TArray<FVector2D> A_Keys;
-	A.GenerateKeyArray(A_Keys);
-
-	TArray<FVector2D> A_Values;
-	A.GenerateValueArray(A_Values);
-
-	TArray<FVector2D> B_Keys;
-	B.GenerateKeyArray(B_Keys);
-
-	TArray<FVector2D> B_Values;
-	B.GenerateValueArray(B_Values);
-
-	if (A_Keys == B_Keys && A_Values == B_Values)
-	{
-		return true;
-	}
-
-	else
-	{
-		return false;
-	}
-}
-
-void UFF_WindowSubsystem::ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views)
-{
-	if (!this->CustomViewport)
-	{
-		this->LastError = "Custom viewport is not valid !";
-		return;
-	}
-
-	if (Out_Views.IsEmpty())
-	{
-		this->LastError = "Views are empty !";
-		return;
-	}
-
-	if (!IsValid(this->MAT_BG))
-	{
-		this->LastError = "Background material is not valid !";
-		return;
-	}
-
-	if (!IsValid(this->MAT_Brush))
-	{
-		this->LastError = "Brush material is not valid !";
-		return;
-	}
-
-	if (this->CanvasName.IsNone())
-	{
-		this->LastError = "Canvas name is empty !";
-		return;
-	}
-
-	FVector2D ViewportSize = FVector2D();
-	this->CustomViewport->GetViewportSize(ViewportSize);
-
-	if (ViewportSize == FVector2D(0.f))
-	{
-		this->LastError = "Viewport size shouldn't be zero !";
-		return;
-	}
-
-	TMap<FVector2D, FVector2D> Temp_Views;
-
-	for (const FPlayerViews Each_View : Out_Views)
-	{
-		const FVector2D ActualPosition = ViewportSize * Each_View.Position;
-		const FVector2D ActualSize = ViewportSize * Each_View.Size;
-		Temp_Views.Add(ActualPosition, ActualSize);
-
-		TMap<FString, FVector2D> Temp_ViewLayout;
-		Temp_ViewLayout.Add("Full Size", ViewportSize);
-		Temp_ViewLayout.Add("Actual Position", ActualPosition);
-		Temp_ViewLayout.Add("Actual Size", ActualSize);
-		Temp_ViewLayout.Add("UV Position", Each_View.Position);
-		Temp_ViewLayout.Add("UV Size", Each_View.Size);
-		this->ViewLayout = MoveTemp(Temp_ViewLayout);
-	}
-
-	if (Temp_Views.IsEmpty())
-	{
-		this->LastError = "Actual size map is empty !";
-		return;
-	}
-
-	if (this->CompareViews(this->MAP_Views, Temp_Views))
-	{
-		this->LastError = "Views are not changed !";
-		return;
-	}
-
-	this->MAP_Views = MoveTemp(Temp_Views);
-	const bool RetVal = UWindowSystemBPLibrary::SetBackgroundMaterial(this->MAT_BG, this->MAT_Brush, this->CanvasName, this->MAP_Views);
-
-	if (!RetVal)
-	{
-		this->LastError = "There was a problem while changing background !";
 	}
 }
 
@@ -423,16 +313,4 @@ void UFF_WindowSubsystem::Toggle_Color_Picker(bool& bIsActive)
 bool UFF_WindowSubsystem::IsColorPickerActive()
 {
 	return this->MouseHook_Color ? true : false;
-}
-
-FString UFF_WindowSubsystem::ViewLayoutLog()
-{
-	FString OutString = "";
-	
-	for (TPair<FString, FVector2D> EachPair : this->ViewLayout)
-	{
-		OutString += EachPair.Key + EachPair.Value.ToString() + "\n";
-	}
-	
-	return OutString;
 }

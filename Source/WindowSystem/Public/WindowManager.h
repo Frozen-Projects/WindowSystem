@@ -66,12 +66,13 @@ private:
 	UPROPERTY()
 	AEachWindow_SWindow* HoveredWindow = nullptr;
 
-	FDelegateHandle TickStartHandle;
+	bool Timer_Do_Once = false;
+
 	FDragDropHandler DragDropHandler;
 	HHOOK MouseHook_Color = NULL;
 
-	virtual void ChangeBackgroundOnNewPlayer(TArray<FPlayerViews> const& Out_Views);
-	virtual bool CompareViews(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
+	FDelegateHandle WorldTickStartHandle;
+
 	virtual void AddDragDropHandlerToMV();
 	virtual void RemoveDragDropHandlerFromMV();
 	virtual void OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime);
@@ -87,20 +88,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ToolTip = "It allows main window to support file drag drop.", ExposeOnSpawn = "true"), Category = "Frozen Forest|Window System|Window")
 	bool bAllowMainWindow = true;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Frozen Forest|Window System|Viewport")
-	UMaterialInterface* MAT_BG = nullptr;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
-	UMaterialInterface* MAT_Brush = nullptr;
-
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
 	FName CanvasName = TEXT("Canvas");
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
 	FString LastError;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
-	TMap<FString, FVector2D> ViewLayout;
 
 	UPROPERTY(BlueprintReadOnly)
 	FColorPickerStruct LastPickedColor;
@@ -134,8 +126,5 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	virtual bool IsColorPickerActive();
-
-	UFUNCTION(BlueprintPure)
-	virtual FString ViewLayoutLog();
 
 };
