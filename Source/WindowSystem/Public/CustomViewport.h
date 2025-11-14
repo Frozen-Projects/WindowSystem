@@ -34,7 +34,7 @@ class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient
 private:
 
     UPROPERTY()
-    FName CRT_Name;
+    FName CRT_Name = "Canvas";
 
     UPROPERTY()
     UMaterialInterface* MAT_BG = nullptr;
@@ -67,7 +67,7 @@ protected:
     bool bIsInitialsLoaded = false;
 
     // We use this to forcefully stop background rendering. For example there is only one view and it is in full screen state.
-    bool bStopBackground = false;
+    bool bActivateBackground = true;
 
 
 public:
@@ -82,7 +82,7 @@ public:
     FDelegateNewLayout DelegateNewLayout;
 
     virtual bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);
-	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Brush, FName In_CRT_Name);
-    virtual void ToggleBackground(bool bStop);
+	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Brush, FName In_CRT_Name = "Canvas");
+    virtual void ToggleBackground(bool bActive = true);
 
 };

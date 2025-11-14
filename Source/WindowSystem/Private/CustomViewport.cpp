@@ -248,7 +248,7 @@ void UCustomViewport::InitTextures()
 
 void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
 {
-    if (this->bStopBackground)
+    if (!this->bActivateBackground)
     {
         return;
     }
@@ -296,9 +296,9 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
     In_SceneCanvas->DrawItem(TileItem);
 }
 
-void UCustomViewport::ToggleBackground(bool bStop)
+void UCustomViewport::ToggleBackground(bool bActive)
 {
-    this->bStopBackground = bStop;
+    this->bActivateBackground = bActive;
 }
 
 bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin)
