@@ -240,7 +240,7 @@ void UCustomViewport::InitTextures()
     FVector2D ViewportSize = FVector2D();
     this->GetViewportSize(ViewportSize);
 
-    this->CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(World, UCanvasRenderTarget2D::StaticClass(), ViewportSize.X, ViewportSize.Y);
+    this->CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(this->World, UCanvasRenderTarget2D::StaticClass(), ViewportSize.X, ViewportSize.Y);
 
     this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
     this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
@@ -285,7 +285,7 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
 
     for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
     {
-        Canvas->K2_DrawMaterial(MAT_Brush, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
+        Canvas->K2_DrawMaterial(this->MAT_Brush, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
     }
 
     UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
