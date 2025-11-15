@@ -161,13 +161,7 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 		// Player 0
 		if (In_Position.X >= TopLeft_1.X && In_Position.X <= BottomRight_1.X && In_Position.Y >= TopLeft_1.Y && In_Position.Y <= BottomRight_1.Y)
 		{
-			if (this->ActualPlayerIndex == 0)
-			{
-				UWindowSystemBPLibrary::PossesLocalPlayer(0, -1);
-				this->ActualPlayerIndex = 0;
-			}
-
-			else if (this->ActualPlayerIndex == 1)
+			if (this->ActualPlayerIndex == 1)
 			{
 				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
 				this->ActualPlayerIndex = 0;
@@ -180,12 +174,6 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 			if (this->ActualPlayerIndex == 0)
 			{
 				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
-				this->ActualPlayerIndex = 1;
-			}
-
-			else if (this->ActualPlayerIndex == 1)
-			{
-				UWindowSystemBPLibrary::PossesLocalPlayer(0, -1);
 				this->ActualPlayerIndex = 1;
 			}
 		}
