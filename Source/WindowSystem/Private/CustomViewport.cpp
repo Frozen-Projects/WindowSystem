@@ -112,7 +112,7 @@ void UCustomViewport::LayoutPlayers()
             // Player 1 = Right
 
             PlayerList[0]->Size = FVector2D(0.425, 0.9);
-            PlayerList[0]->Origin = FVector2D(0.525, 0.5);
+            PlayerList[0]->Origin = FVector2D(0.525, 0.05);
 
             // Player 2 = Top Left
 
@@ -259,7 +259,7 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
     }
 
     FVector2D ViewportSize = FVector2D(In_Viewport->GetSizeXY());
-    if (ViewportSize == FVector2D(0.f))
+    if (ViewportSize.X == 0 || ViewportSize.Y == 0)
 	{
         return;
 	}

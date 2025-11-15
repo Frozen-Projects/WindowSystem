@@ -12,20 +12,6 @@
 
 class AEachWindow_SWindow;
 
-USTRUCT(BlueprintType)
-struct WINDOWSYSTEM_API FColorPickerStruct
-{
-	GENERATED_BODY()
-
-public:
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector2D Position = FVector2D::ZeroVector;
-
-	UPROPERTY(BlueprintReadOnly)
-	FLinearColor Color = FLinearColor::Black;
-};
-
 // File drag drop system.
 USTRUCT(BlueprintType)
 struct WINDOWSYSTEM_API FDroppedFileStruct
@@ -49,7 +35,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowClosed, const FName&,
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowMoved, AEachWindow_SWindow* const&, Window);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowHovered, AEachWindow_SWindow* const&, OutHovered);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateLayoutChanged, const TArray<FPlayerViews>&, Out_Views);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateColorPicker, FColorPickerStruct, Out_Color);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDelegateLMBHook, FVector2D, Out_Position, FLinearColor, Out_Color);
 
 UCLASS()
 class WINDOWSYSTEM_API UFF_WindowSubsystem : public UGameInstanceSubsystem
@@ -62,18 +48,23 @@ private:
 	UCustomViewport* CustomViewport = nullptr;
 
 	UPROPERTY()
-	TMap<FVector2D, FVector2D> MAP_Views;
-
-	UPROPERTY()
 	AEachWindow_SWindow* HoveredWindow = nullptr;
 
 	FDelegateHandle WorldTickStartHandle;
 	FDragDropHandler DragDropHandler;
-	HHOOK MouseHook_Color = NULL;
+
+	// Reference for SetMouseHookEx lambda functor.
+	static TWeakObjectPtr<UFF_WindowSubsystem> SelfReference;
+	HHOOK Hook_LMB = NULL;
 
 	virtual void AddDragDropHandlerToMV();
 	virtual void RemoveDragDropHandlerFromMV();
 	virtual void OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime);
+
+	UFUNCTION()
+	virtual void OnViewportDetected(FVector2D In_Position, FLinearColor In_Color);
+
+	int32 ActualPlayerIndex = 0;
 
 public:
 
@@ -90,7 +81,10 @@ public:
 	FName CanvasName = TEXT("Canvas");
 
 	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
-	FDelegateColorPicker OnColorPicked;
+	FDelegateLMBHook DelegateLMBHook;
+
+	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Viewport|Events")
+	FDelegateLayoutChanged DelegateLayoutChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
 	FDelegateFileDrop OnFileDrop;
@@ -104,9 +98,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
 	FDelegateWindowHovered OnWindowHovered;
 
-	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Viewport|Events")
-	FDelegateLayoutChanged OnLayoutChanged;
-
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Close All Windows", Keywords = "close, all, window"), Category = "Frozen Forest|Window System|Window")
 	virtual bool CloseAllWindows();
 
@@ -116,10 +107,7 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bring Front on Hover", ToolTip = "", Keywords = "hover, system, bring, window, front"), Category = "Frozen Forest|Window System|Window")
 	virtual bool BringFrontOnHover(AEachWindow_SWindow* TargetWindow);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Color Picker", ToolTip = "It will give cursor position and color under cursor.", Keywords = "cursor, mouse, color, pixel, position, location"), Category = "Frozen Forest|Window System|Window")
-	virtual void Toggle_Color_Picker();
-
-	UFUNCTION(BlueprintPure)
-	virtual bool IsColorPickerActive();
+	UFUNCTION(BlueprintCallable)
+	virtual void InitMouseHook();
 
 };

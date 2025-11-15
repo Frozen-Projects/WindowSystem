@@ -5,6 +5,8 @@
 // Custom Includes.
 #include "WindowInstance.h"		// CloseAllWindows -> Destrow window actor.
 
+TWeakObjectPtr<UFF_WindowSubsystem> UFF_WindowSubsystem::SelfReference;
+
 void UFF_WindowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -13,9 +15,9 @@ void UFF_WindowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UFF_WindowSubsystem::Deinitialize()
 {
-	if (this->MouseHook_Color)
+	if (this->Hook_LMB)
 	{
-		UnhookWindowsHookEx(MouseHook_Color);
+		UnhookWindowsHookEx(Hook_LMB);
 	}
 
 	this->RemoveDragDropHandlerFromMV();
@@ -37,7 +39,7 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 	{
 		this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
 			{
-				this->OnLayoutChanged.Broadcast(Views);
+				this->DelegateLayoutChanged.Broadcast(Views);
 			}
 		);
 	}
@@ -48,6 +50,155 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 	{
 		FWorldDelegates::OnWorldTickStart.Remove(this->WorldTickStartHandle);
 		this->WorldTickStartHandle.Reset();
+	}
+}
+
+void UFF_WindowSubsystem::InitMouseHook()
+{
+	if (this->Hook_LMB)
+	{
+		UnhookWindowsHookEx(Hook_LMB);
+		this->Hook_LMB = NULL;
+
+		return;
+	}
+
+	SelfReference = this;
+
+	this->DelegateLMBHook.AddDynamic(this, &UFF_WindowSubsystem::OnViewportDetected);
+
+	auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
+		{
+			if (wParam == WM_LBUTTONDOWN)
+			{
+				if (!SelfReference.IsValid())
+				{
+					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : SelfReference is not valid !";
+					UE_LOG(LogTemp, Error, TEXT("%s"), *ErrorMsg);
+				}
+
+				HWND ScreenHandle = GetDesktopWindow();
+
+				if (!ScreenHandle)
+				{
+					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : Failed to get Screen Handle !";
+					UE_LOG(LogTemp, Error, TEXT("%s : %d"), *ErrorMsg, GetLastError());
+
+					return CallNextHookEx(0, nCode, wParam, lParam);
+				}
+
+				HDC ScreenContext = GetDC(ScreenHandle);
+				if (!ScreenContext)
+				{
+					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : Failed to get Screen Context !";
+					UE_LOG(LogTemp, Error, TEXT("%s : %d"), *ErrorMsg, GetLastError());
+
+					return CallNextHookEx(0, nCode, wParam, lParam);
+				}
+
+				POINT RawPos;
+				if (!GetCursorPos(&RawPos))
+				{
+					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : Failed to get Cursor Position !";
+					UE_LOG(LogTemp, Error, TEXT("%s : %d"), *ErrorMsg, GetLastError());
+
+					ReleaseDC(ScreenHandle, ScreenContext);
+					return CallNextHookEx(0, nCode, wParam, lParam);
+				}
+
+				COLORREF RawColor = GetPixel(ScreenContext, RawPos.x, RawPos.y);
+				FLinearColor PositionColor = FLinearColor();
+				PositionColor.R = GetRValue(RawColor);
+				PositionColor.G = GetGValue(RawColor);
+				PositionColor.B = GetBValue(RawColor);
+				PositionColor.A = 255;
+
+				SelfReference->DelegateLMBHook.Broadcast(FVector2D(RawPos.x, RawPos.y), PositionColor);
+				ReleaseDC(ScreenHandle, ScreenContext);
+			}
+
+			return CallNextHookEx(0, nCode, wParam, lParam);
+		};
+
+	this->Hook_LMB = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
+}
+
+void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor In_Color)
+{
+	if (!IsValid(this->CustomViewport))
+	{
+		return;
+	}
+	
+	FVector2D ViewportSize = FVector2D();
+	this->CustomViewport->GetViewportSize(ViewportSize);
+
+	if (ViewportSize.X == 0 || ViewportSize.Y == 0)
+	{
+		return;
+	}
+
+	const TArray<ULocalPlayer*>& Temp_Player_List = GEngine->GetGamePlayers(this->CustomViewport);
+	const int32 Player_Count = Temp_Player_List.Num();
+
+	if (Player_Count <= 1)
+	{
+		return;
+	}
+
+	if (Player_Count == 2)
+	{
+		const FVector2D Size_1 = Temp_Player_List[0]->Size;
+		const FVector2D Origin_1 = Temp_Player_List[0]->Origin;
+		const FVector2D TopLeft_1 = Origin_1 * ViewportSize;
+		const FVector2D BottomRight_1 = (Origin_1 + Size_1) * ViewportSize;
+
+		const FVector2D Size_2 = Temp_Player_List[1]->Size;
+		const FVector2D Origin_2 = Temp_Player_List[1]->Origin;
+		const FVector2D TopLeft_2 = Origin_2 * ViewportSize;
+		const FVector2D BottomRight_2 = (Origin_2 + Size_2) * ViewportSize;
+
+		// Player 0
+		if (In_Position.X >= TopLeft_1.X && In_Position.X <= BottomRight_1.X && In_Position.Y >= TopLeft_1.Y && In_Position.Y <= BottomRight_1.Y)
+		{
+			if (this->ActualPlayerIndex == 0)
+			{
+				UWindowSystemBPLibrary::PossesLocalPlayer(0, -1);
+				this->ActualPlayerIndex = 0;
+			}
+
+			else if (this->ActualPlayerIndex == 1)
+			{
+				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
+				this->ActualPlayerIndex = 0;
+			}
+		}
+
+		// Player 1
+		else if (In_Position.X >= TopLeft_2.X && In_Position.X <= BottomRight_2.X && In_Position.Y >= TopLeft_2.Y && In_Position.Y <= BottomRight_2.Y)
+		{
+			if (this->ActualPlayerIndex == 0)
+			{
+				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
+				this->ActualPlayerIndex = 1;
+			}
+
+			else if (this->ActualPlayerIndex == 1)
+			{
+				UWindowSystemBPLibrary::PossesLocalPlayer(0, -1);
+				this->ActualPlayerIndex = 1;
+			}
+		}
+	}
+
+	else if (Player_Count == 3)
+	{
+		// To be implemented.
+	}
+
+	else if (Player_Count == 4)
+	{
+		// To be implemented.
 	}
 }
 
@@ -245,95 +396,4 @@ bool UFF_WindowSubsystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 	this->HoveredWindow = TargetWindow;
 
 	return true;
-}
-
-void UFF_WindowSubsystem::Toggle_Color_Picker()
-{
-	if (this->MouseHook_Color)
-	{
-		UnhookWindowsHookEx(MouseHook_Color);
-		this->MouseHook_Color = NULL;
-
-		return;
-	}
-
-	else
-	{
-		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
-			{
-				if (wParam == WM_LBUTTONDOWN)
-				{
-					UWorld* World = GEngine->GetCurrentPlayWorld();
-
-					if (!IsValid(World))
-					{
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> World is not valid !"));
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					UGameInstance* GameInstance = World->GetGameInstance();
-
-					if (!IsValid(GameInstance))
-					{
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Game Instance is not valid !"));
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					HWND ScreenHandle = GetDesktopWindow();
-
-					if (!ScreenHandle)
-					{
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Handle is not valid ! : %d"), GetLastError());
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					HDC ScreenContext = GetDC(ScreenHandle);
-					if (!ScreenContext)
-					{
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Context is not valid ! : %d"), GetLastError());
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					POINT RawPos;
-					if (!GetCursorPos(&RawPos))
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Got Cursor Pos : %d"), GetLastError());
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					COLORREF RawColor = GetPixel(ScreenContext, RawPos.x, RawPos.y);
-					FLinearColor PositionColor = FLinearColor();
-					PositionColor.R = GetRValue(RawColor);
-					PositionColor.G = GetGValue(RawColor);
-					PositionColor.B = GetBValue(RawColor);
-					PositionColor.A = 255;
-
-					UFF_WindowSubsystem* Subsystem = GameInstance->GetSubsystem<UFF_WindowSubsystem>();
-					
-					if (!IsValid(Subsystem))
-					{
-						ReleaseDC(ScreenHandle, ScreenContext);
-
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Window Subsystem is not valid !"));
-						return CallNextHookEx(0, nCode, wParam, lParam);
-					}
-
-					FColorPickerStruct Result;
-					Result.Color = PositionColor;
-					Result.Position = FVector2D(RawPos.x, RawPos.y);
-					Subsystem->OnColorPicked.Broadcast(MoveTemp(Result));
-
-					ReleaseDC(ScreenHandle, ScreenContext);
-				}
-
-				return CallNextHookEx(0, nCode, wParam, lParam);
-			};
-
-		this->MouseHook_Color = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
-	}
-}
-
-bool UFF_WindowSubsystem::IsColorPickerActive()
-{
-	return this->MouseHook_Color ? true : false;
 }
