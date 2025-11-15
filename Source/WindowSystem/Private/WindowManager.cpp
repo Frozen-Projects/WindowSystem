@@ -113,8 +113,16 @@ void UFF_WindowSubsystem::InitMouseHook()
 				PositionColor.B = GetBValue(RawColor);
 				PositionColor.A = 255;
 
-				SelfReference->DelegateLMBHook.Broadcast(FVector2D(RawPos.x, RawPos.y), PositionColor);
 				ReleaseDC(ScreenHandle, ScreenContext);
+
+				AsyncTask(ENamedThreads::GameThread, [RawPos, PositionColor]()
+					{
+						if (SelfReference.IsValid())
+						{
+							SelfReference->DelegateLMBHook.Broadcast(FVector2D(RawPos.x, RawPos.y), PositionColor);
+						}
+					}
+				);	
 			}
 
 			return CallNextHookEx(0, nCode, wParam, lParam);
@@ -141,8 +149,11 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 	const TArray<ULocalPlayer*>& Temp_Player_List = GEngine->GetGamePlayers(this->CustomViewport);
 	const int32 Player_Count = Temp_Player_List.Num();
 
-	if (Player_Count <= 1)
+	if (Player_Count == 1)
 	{
+		//const FVector2D Origin_1 = Temp_Player_List[0]->Origin;
+		//this->CustomViewport->FrameTarget = Origin_1 * ViewportSize;
+
 		return;
 	}
 
@@ -161,8 +172,17 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 		// Player 0
 		if (In_Position.X >= TopLeft_1.X && In_Position.X <= BottomRight_1.X && In_Position.Y >= TopLeft_1.Y && In_Position.Y <= BottomRight_1.Y)
 		{
-			if (this->ActualPlayerIndex == 1)
+			if (this->ActualPlayerIndex == 0)
 			{
+				this->CustomViewport->FrameTarget = Origin_1 * ViewportSize;
+				this->CustomViewport->InitTextures();
+			}
+
+			else if (this->ActualPlayerIndex == 1)
+			{
+				this->CustomViewport->FrameTarget = Origin_1 * ViewportSize;
+				this->CustomViewport->InitTextures();
+
 				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
 				this->ActualPlayerIndex = 0;
 			}
@@ -173,10 +193,21 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 		{
 			if (this->ActualPlayerIndex == 0)
 			{
+				this->CustomViewport->FrameTarget = Origin_2 * ViewportSize;
+				this->CustomViewport->InitTextures();
+
 				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
 				this->ActualPlayerIndex = 1;
 			}
+
+			else if (this->ActualPlayerIndex == 1)
+			{
+				this->CustomViewport->FrameTarget = Origin_2 * ViewportSize;
+				this->CustomViewport->InitTextures();
+			}
 		}
+
+		return;
 	}
 
 	else if (Player_Count == 3)

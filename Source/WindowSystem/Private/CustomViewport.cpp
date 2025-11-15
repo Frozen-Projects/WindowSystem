@@ -59,6 +59,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios.Num() != Temp_Views.Num())
         {
+            this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
             DelegateNewLayout.Broadcast(this->View_Ratios);
         }
@@ -96,6 +97,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios.Num() != Temp_Views.Num())
         {
+            this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
             DelegateNewLayout.Broadcast(this->View_Ratios);
         }
@@ -138,6 +140,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios.Num() != Temp_Views.Num())
         {
+            this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
             DelegateNewLayout.Broadcast(this->View_Ratios);
         }
@@ -185,6 +188,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios.Num() != Temp_Views.Num())
         {
+            this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
             DelegateNewLayout.Broadcast(this->View_Ratios);
         }
@@ -241,9 +245,19 @@ void UCustomViewport::InitTextures()
     this->GetViewportSize(ViewportSize);
 
     this->CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(this->World, UCanvasRenderTarget2D::StaticClass(), ViewportSize.X, ViewportSize.Y);
+    this->CRT->OnCanvasRenderTargetUpdate.AddDynamic(this, &UCustomViewport::UpdateCRTColor);
+	this->CRT->UpdateResource();
 
     this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
     this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
+}
+
+void UCustomViewport::UpdateCRTColor(UCanvas* Canvas, int32 Width, int32 Height)
+{
+    if (Canvas && Canvas->Canvas)
+    {
+        Canvas->Canvas->Clear(FLinearColor::White); // Clear with specified color
+    }
 }
 
 void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
@@ -253,7 +267,7 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
         return;
     }
 
-    if (!IsValid(this->World) || !IsValid(this->MAT_BG) || !IsValid(this->MAT_Brush) || CRT_Name.IsNone())
+    if (!IsValid(this->World) || !IsValid(this->MAT_BG) || !IsValid(this->MAT_Cut) || !IsValid(this->MAT_Frame) || CRT_Name.IsNone())
     {
         return;
     }
@@ -285,7 +299,15 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
 
     for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
     {
-        Canvas->K2_DrawMaterial(this->MAT_Brush, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
+		// Draw Frame first to avoid overlapping issues.
+
+        if (this->FrameTarget == Each_View.Key)
+        {
+            Canvas->K2_DrawMaterial(this->MAT_Frame, Each_View.Key + FVector2D(-(this->FrameThickness / 2)), Each_View.Value + FVector2D(this->FrameThickness), FVector2D(0.f), FVector2D(1.f));
+        }
+
+		// Then Cut.
+        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
     }
 
     UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
@@ -318,15 +340,16 @@ bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRa
     return true;
 }
 
-bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Brush, FName In_CRT_Name)
+bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name)
 {
-    if (!IsValid(this->World) || !IsValid(In_MAT_BG) || !IsValid(In_MAT_Brush) || In_CRT_Name.IsNone())
+    if (!IsValid(In_MAT_BG) || !IsValid(In_MAT_Cut) || !IsValid(In_MAT_Frame) || In_CRT_Name.IsNone())
     {
         return false;
     }
 
 	this->MAT_BG = In_MAT_BG;
-	this->MAT_Brush = In_MAT_Brush;
+	this->MAT_Cut = In_MAT_Cut;
+	this->MAT_Frame = In_MAT_Frame;
 	this->CRT_Name = In_CRT_Name;
 
 	this->InitTextures();
