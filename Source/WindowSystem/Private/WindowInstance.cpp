@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WindowInstance.h"
+#include "Misc/Optional.h"
 
 // Sets default values.
 AEachWindow_SWindow::AEachWindow_SWindow()
@@ -202,27 +203,27 @@ bool AEachWindow_SWindow::CreateNewWindow()
 	}
 
 	FWindowSizeLimits SizeLimits = FWindowSizeLimits();
-	SizeLimits.SetMinWidth(MinSize.X);
-	SizeLimits.SetMinHeight(MinSize.Y);
+	SizeLimits.SetMinWidth(this->MinSize.X);
+	SizeLimits.SetMinHeight(this->MinSize.Y);
 
-	if (MaxSize.X == 0)
+	if (this->MaxSize.X == 0)
 	{
-		MaxSize.X = GEngine->GetGameUserSettings()->GetScreenResolution().X;
+		this->MaxSize.X = GEngine->GetGameUserSettings()->GetScreenResolution().X;
 	}
 
 	else
 	{
-		SizeLimits.SetMaxWidth(MaxSize.X);
+		SizeLimits.SetMaxWidth(this->MaxSize.X);
 	}
 
-	if (MaxSize.Y == 0)
+	if (this->MaxSize.Y == 0)
 	{
-		MaxSize.Y = GEngine->GetGameUserSettings()->GetScreenResolution().Y;
+		this->MaxSize.Y = GEngine->GetGameUserSettings()->GetScreenResolution().Y;
 	}
 
 	else
 	{
-		SizeLimits.SetMaxHeight(MaxSize.Y);
+		SizeLimits.SetMaxHeight(this->MaxSize.Y);
 	}
 
 	WidgetWindow->SetContent(ContentWidget->TakeWidget());
@@ -238,9 +239,6 @@ bool AEachWindow_SWindow::CreateNewWindow()
 
 	// Add created window to Slate.
 	FSlateApplication::Get().AddWindow(WidgetWindow.ToSharedRef(), true);
-
-	// If we use this and hide window from taskbar, minimized window will still be visible at left corner as small form.
-	//FSlateApplication::Get().AddWindowAsNativeChild(WidgetWindow.ToSharedRef(), GEngine->GameViewport->GetWindow().ToSharedRef());
 
 	// Hide Window from Taskbar.
 	HWND WidgetWindowHandle = reinterpret_cast<HWND>(WidgetWindow.ToSharedRef().Get().GetNativeWindow().ToSharedRef().Get().GetOSWindowHandle());

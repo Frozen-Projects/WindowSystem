@@ -20,10 +20,10 @@ struct WINDOWSYSTEM_API FColorPickerStruct
 public:
 
 	UPROPERTY(BlueprintReadOnly)
-	FVector2D Position;
+	FVector2D Position = FVector2D::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly)
-	FLinearColor Color;
+	FLinearColor Color = FLinearColor::Black;
 };
 
 // File drag drop system.
@@ -49,6 +49,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowClosed, const FName&,
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowMoved, AEachWindow_SWindow* const&, Window);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowHovered, AEachWindow_SWindow* const&, OutHovered);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateLayoutChanged, const TArray<FPlayerViews>&, Out_Views);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateColorPicker, FColorPickerStruct, Out_Color);
 
 UCLASS()
 class WINDOWSYSTEM_API UFF_WindowSubsystem : public UGameInstanceSubsystem
@@ -66,12 +67,9 @@ private:
 	UPROPERTY()
 	AEachWindow_SWindow* HoveredWindow = nullptr;
 
-	bool Timer_Do_Once = false;
-
+	FDelegateHandle WorldTickStartHandle;
 	FDragDropHandler DragDropHandler;
 	HHOOK MouseHook_Color = NULL;
-
-	FDelegateHandle WorldTickStartHandle;
 
 	virtual void AddDragDropHandlerToMV();
 	virtual void RemoveDragDropHandlerFromMV();
@@ -91,11 +89,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
 	FName CanvasName = TEXT("Canvas");
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Frozen Forest|Window System|Wiewport")
-	FString LastError;
-
-	UPROPERTY(BlueprintReadOnly)
-	FColorPickerStruct LastPickedColor;
+	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
+	FDelegateColorPicker OnColorPicked;
 
 	UPROPERTY(BlueprintAssignable, Category = "Frozen Forest|Window System|Window|Events")
 	FDelegateFileDrop OnFileDrop;
@@ -122,7 +117,7 @@ public:
 	virtual bool BringFrontOnHover(AEachWindow_SWindow* TargetWindow);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Color Picker", ToolTip = "It will give cursor position and color under cursor.", Keywords = "cursor, mouse, color, pixel, position, location"), Category = "Frozen Forest|Window System|Window")
-	virtual void Toggle_Color_Picker(bool& bIsActive);
+	virtual void Toggle_Color_Picker();
 
 	UFUNCTION(BlueprintPure)
 	virtual bool IsColorPickerActive();

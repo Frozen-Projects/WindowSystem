@@ -247,37 +247,50 @@ bool UFF_WindowSubsystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 	return true;
 }
 
-void UFF_WindowSubsystem::Toggle_Color_Picker(bool& bIsActive)
+void UFF_WindowSubsystem::Toggle_Color_Picker()
 {
 	if (this->MouseHook_Color)
 	{
 		UnhookWindowsHookEx(MouseHook_Color);
 		this->MouseHook_Color = NULL;
 
-		bIsActive = false;
 		return;
 	}
 
 	else
 	{
-		thread_local FColorPickerStruct ColorPickerContainer = FColorPickerStruct();
-
 		auto Callback_Hook = [](int nCode, WPARAM wParam, LPARAM lParam)->LRESULT
 			{
 				if (wParam == WM_LBUTTONDOWN)
 				{
+					UWorld* World = GEngine->GetCurrentPlayWorld();
+
+					if (!IsValid(World))
+					{
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> World is not valid !"));
+						return CallNextHookEx(0, nCode, wParam, lParam);
+					}
+
+					UGameInstance* GameInstance = World->GetGameInstance();
+
+					if (!IsValid(GameInstance))
+					{
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Game Instance is not valid !"));
+						return CallNextHookEx(0, nCode, wParam, lParam);
+					}
+
 					HWND ScreenHandle = GetDesktopWindow();
 
 					if (!ScreenHandle)
 					{
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Handle is not valid !"));
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Handle is not valid ! : %d"), GetLastError());
 						return CallNextHookEx(0, nCode, wParam, lParam);
 					}
 
 					HDC ScreenContext = GetDC(ScreenHandle);
 					if (!ScreenContext)
 					{
-						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Context is not valid !"));
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Screen Context is not valid ! : %d"), GetLastError());
 						return CallNextHookEx(0, nCode, wParam, lParam);
 					}
 
@@ -285,6 +298,7 @@ void UFF_WindowSubsystem::Toggle_Color_Picker(bool& bIsActive)
 					if (!GetCursorPos(&RawPos))
 					{
 						UE_LOG(LogTemp, Warning, TEXT("Read Screen Color -> Error -> Got Cursor Pos : %d"), GetLastError());
+						return CallNextHookEx(0, nCode, wParam, lParam);
 					}
 
 					COLORREF RawColor = GetPixel(ScreenContext, RawPos.x, RawPos.y);
@@ -294,8 +308,20 @@ void UFF_WindowSubsystem::Toggle_Color_Picker(bool& bIsActive)
 					PositionColor.B = GetBValue(RawColor);
 					PositionColor.A = 255;
 
-					ColorPickerContainer.Color = PositionColor;
-					ColorPickerContainer.Position = FVector2D(RawPos.x, RawPos.y);
+					UFF_WindowSubsystem* Subsystem = GameInstance->GetSubsystem<UFF_WindowSubsystem>();
+					
+					if (!IsValid(Subsystem))
+					{
+						ReleaseDC(ScreenHandle, ScreenContext);
+
+						UE_LOG(LogTemp, Error, TEXT("Read Screen Color -> Error -> Window Subsystem is not valid !"));
+						return CallNextHookEx(0, nCode, wParam, lParam);
+					}
+
+					FColorPickerStruct Result;
+					Result.Color = PositionColor;
+					Result.Position = FVector2D(RawPos.x, RawPos.y);
+					Subsystem->OnColorPicked.Broadcast(MoveTemp(Result));
 
 					ReleaseDC(ScreenHandle, ScreenContext);
 				}
@@ -303,10 +329,7 @@ void UFF_WindowSubsystem::Toggle_Color_Picker(bool& bIsActive)
 				return CallNextHookEx(0, nCode, wParam, lParam);
 			};
 
-		this->LastPickedColor = MoveTemp(ColorPickerContainer);
-
 		this->MouseHook_Color = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
-		bIsActive = true;
 	}
 }
 
