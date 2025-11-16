@@ -24,7 +24,7 @@ public:
     FVector2D Position = FVector2D();
 };
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FDelegateNewLayout, const TArray<FPlayerViews>&);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateNewLayout, const TArray<FPlayerViews>&, Out_Views);
 
 UCLASS()
 class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient
@@ -33,7 +33,7 @@ class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient
 
 private:
 
-    const int32 FrameThickness = 10;
+    int32 FrameThickness = 10;
 
     UPROPERTY()
     FName CRT_Name = "Canvas";
@@ -59,7 +59,7 @@ private:
 	// We use this to compare if there is a change in views on background calculation.
     UPROPERTY()
     TMap<FVector2D, FVector2D> Old_View;
- 
+
     UFUNCTION()
     virtual void UpdateCRTColor(UCanvas* Canvas, int32 Width, int32 Height);
 
@@ -90,8 +90,8 @@ public:
 	FVector2D FrameTarget = FVector2D::ZeroVector;
 
     virtual bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);
-	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name = "Canvas");
+	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name = "Canvas", int32 In_Thickness = 10);
     virtual void ToggleBackground(bool bActive = true);
-    virtual void InitTextures();
+    virtual void UpdateAssets();
 
 };

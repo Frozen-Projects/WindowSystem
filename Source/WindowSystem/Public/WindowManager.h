@@ -62,6 +62,9 @@ private:
 	virtual void OnWorldTickStart(UWorld* World, ELevelTick TickType, float DeltaTime);
 
 	UFUNCTION()
+	virtual void OnLayoutChanged(const TArray<FPlayerViews>& In_Views);
+
+	UFUNCTION()
 	virtual void OnViewportDetected(FVector2D In_Position, FLinearColor In_Color);
 
 public:

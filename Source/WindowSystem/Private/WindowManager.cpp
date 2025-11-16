@@ -43,11 +43,7 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 
 	if (IsValid(this->CustomViewport))
 	{
-		this->CustomViewport->DelegateNewLayout.AddLambda([this](const TArray<FPlayerViews>& Views)
-			{
-				this->DelegateLayoutChanged.Broadcast(Views);
-			}
-		);
+		this->CustomViewport->DelegateNewLayout.AddDynamic(this, &UFF_WindowSubsystem::OnLayoutChanged);
 	}
 
 	this->AddDragDropHandlerToMV();
@@ -138,6 +134,11 @@ void UFF_WindowSubsystem::InitMouseHook()
 	this->Hook_LMB = SetWindowsHookEx(WH_MOUSE_LL, Callback_Hook, NULL, 0);
 }
 
+void UFF_WindowSubsystem::OnLayoutChanged(const TArray<FPlayerViews>& In_Views)
+{
+	this->DelegateLayoutChanged.Broadcast(In_Views);
+}
+
 void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor In_Color)
 {
 	if (!IsValid(this->CustomViewport))
@@ -181,7 +182,7 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 		{
 			Each_Player->SetControllerId(0);
 			this->CustomViewport->FrameTarget = Actual_Origin;
-			this->CustomViewport->InitTextures();
+			this->CustomViewport->UpdateAssets();
 		}
 	}
 }

@@ -63,7 +63,7 @@ class UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
 	* @param Views Key = View position ; Value = View size.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Background Material", Keywords = "set, background, material, layout, customize, splitscreen, viewport"), Category = "Window System")
-	static bool SetBackgroundMaterial_BP(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name = "Canvas");
+	static bool SetBackgroundMaterial_BP(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name = "Canvas", int32 In_Thickness = 10);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Background", ToolTip = "We suggest you to use this when there is only one view and it is fullscreen.", Keywords = "background, layout, customize, splitscreen, viewport, toggle"), Category = "Window System")
 	static bool ToggleBackground(bool bActive = true);

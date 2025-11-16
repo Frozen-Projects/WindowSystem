@@ -250,7 +250,7 @@ bool UCustomViewport::ComparePixels(TMap<FVector2D, FVector2D> A, TMap<FVector2D
     }
 }
 
-void UCustomViewport::InitTextures()
+void UCustomViewport::UpdateAssets()
 {
     if (IsValid(this->CRT))
     {
@@ -295,7 +295,7 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
     if (!this->ComparePixels(Temp_Views, this->Old_View))
     {
         this->Old_View = Temp_Views;
-		this->InitTextures();
+		this->UpdateAssets();
 	}
 
     FDrawToRenderTargetContext Context;
@@ -346,7 +346,7 @@ bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRa
     return true;
 }
 
-bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name)
+bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name, int32 In_Thickness)
 {
     if (!IsValid(In_MAT_BG) || !IsValid(In_MAT_Cut) || !IsValid(In_MAT_Frame) || In_CRT_Name.IsNone())
     {
@@ -357,8 +357,9 @@ bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMate
 	this->MAT_Cut = In_MAT_Cut;
 	this->MAT_Frame = In_MAT_Frame;
 	this->CRT_Name = In_CRT_Name;
+	this->FrameThickness = In_Thickness < 10 ? 10 : In_Thickness;
 
-	this->InitTextures();
+	this->UpdateAssets();
 
 	return true;
 }

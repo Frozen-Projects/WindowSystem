@@ -394,7 +394,7 @@ bool UWindowSystemBPLibrary::ToggleWidgetState(UWidget* TargetWidget, ESlateVisi
 	}
 }
 
-bool UWindowSystemBPLibrary::SetBackgroundMaterial_BP(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name)
+bool UWindowSystemBPLibrary::SetBackgroundMaterial_BP(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name, int32 In_Thickness)
 {
 	if (!IsValid(In_MAT_BG) || !IsValid(In_MAT_Cut) || !IsValid(In_MAT_Frame) || In_CRT_Name.IsNone())
 	{
@@ -408,7 +408,7 @@ bool UWindowSystemBPLibrary::SetBackgroundMaterial_BP(UMaterialInterface* In_MAT
 		return false;
 	}
 
-	return CustomViewport->SetBackgroundMaterial(In_MAT_BG, In_MAT_Cut, In_MAT_Frame, In_CRT_Name);
+	return CustomViewport->SetBackgroundMaterial(In_MAT_BG, In_MAT_Cut, In_MAT_Frame, In_CRT_Name, In_Thickness);
 }
 
 bool UWindowSystemBPLibrary::ToggleBackground(bool bActive)
