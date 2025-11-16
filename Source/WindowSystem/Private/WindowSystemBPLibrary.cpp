@@ -341,26 +341,21 @@ void UWindowSystemBPLibrary::SaveFileDialog(FDelegateSaveFile DelegateSaveFile, 
 bool UWindowSystemBPLibrary::PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId)
 {
 	UWorld* World = GEngine->GetCurrentPlayWorld();
-	UEngine* const REF_Engine = GEngine->GameViewport->GetGameInstance()->GetEngine();
-	const int32 NumPlayers = REF_Engine->GetNumGamePlayers(World);
 
-	if (NumPlayers > PlayerId + 1 || ControllerId < -1)
+	if (!World)
 	{
 		return false;
 	}
 
-	int32 PlayerControllerId = 0;
-	if (ControllerId == -1)
+	UEngine* const REF_Engine = GEngine->GameViewport->GetGameInstance()->GetEngine();
+	const int32 NumPlayers = REF_Engine->GetNumGamePlayers(World);
+
+	if (NumPlayers <= PlayerId)
 	{
-		PlayerControllerId = UGameplayStatics::GetPlayerControllerID(REF_Engine->GetGamePlayer(World, 0)->GetPlayerController(World));
+		return false;
 	}
 
-	else
-	{
-		PlayerControllerId = ControllerId;
-	}
-
-	REF_Engine->GetGamePlayer(World, PlayerId)->SetControllerId(PlayerControllerId);
+	REF_Engine->GetGamePlayer(World, PlayerId)->SetControllerId(ControllerId);
 
 	return true;
 }

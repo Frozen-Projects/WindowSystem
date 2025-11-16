@@ -51,7 +51,7 @@ class UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
 	static void SaveFileDialog(FDelegateSaveFile DelegateSaveFile, const FString InDialogName, const FString InOkLabel, const FString InDefaultPath, TMap<FString, FString> InExtensions, int32 DefaultExtensionIndex, bool bIsNormalizeOutputs = true);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Posses Local Player", ToolTip = "This is customized version of UGameViewportClient::SSSwapControllers which works on Shipping Builds.\nIf controller id is \"-1\", it will use main player's controller id which is probably 0. But else, it will use given index.", Keywords = "assign, new, controller, player, local"), Category = "Window System")
-	static bool PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId = -1);
+	static bool PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId = 0);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Change Player View Size", ToolTip = "", Keywords = "change, player, view, viewport, size, position, ratio"), Category = "Window System")
 	static bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);

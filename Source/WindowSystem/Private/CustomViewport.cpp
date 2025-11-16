@@ -9,6 +9,17 @@
 UCustomViewport::UCustomViewport() : Super(FObjectInitializer::Get())
 {
     MaxSplitscreenPlayers = 4;
+
+    this->CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(this->World, UCanvasRenderTarget2D::StaticClass(), 1920, 1080);
+    this->CRT->OnCanvasRenderTargetUpdate.AddDynamic(this, &UCustomViewport::UpdateCRTColor);
+}
+
+void UCustomViewport::UpdateCRTColor(UCanvas* Canvas, int32 Width, int32 Height)
+{
+    if (Canvas && Canvas->Canvas)
+    {
+        Canvas->Canvas->Clear(FLinearColor::White); // Clear with specified color
+    }
 }
 
 void UCustomViewport::UpdateActiveSplitscreenType()
@@ -241,23 +252,13 @@ bool UCustomViewport::ComparePixels(TMap<FVector2D, FVector2D> A, TMap<FVector2D
 
 void UCustomViewport::InitTextures()
 {
-    FVector2D ViewportSize = FVector2D();
-    this->GetViewportSize(ViewportSize);
-
-    this->CRT = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(this->World, UCanvasRenderTarget2D::StaticClass(), ViewportSize.X, ViewportSize.Y);
-    this->CRT->OnCanvasRenderTargetUpdate.AddDynamic(this, &UCustomViewport::UpdateCRTColor);
-	this->CRT->UpdateResource();
+    if (IsValid(this->CRT))
+    {
+        this->CRT->UpdateResource();
+    }
 
     this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
     this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
-}
-
-void UCustomViewport::UpdateCRTColor(UCanvas* Canvas, int32 Width, int32 Height)
-{
-    if (Canvas && Canvas->Canvas)
-    {
-        Canvas->Canvas->Clear(FLinearColor::White); // Clear with specified color
-    }
 }
 
 void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
@@ -272,11 +273,16 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
         return;
     }
 
-    FVector2D ViewportSize = FVector2D(In_Viewport->GetSizeXY());
+    const FVector2D ViewportSize = FVector2D(In_Viewport->GetSizeXY());
     if (ViewportSize.X == 0 || ViewportSize.Y == 0)
 	{
         return;
 	}
+
+    if (this->CRT->SizeX != ViewportSize.X || this->CRT->SizeY != ViewportSize.Y)
+    {
+		this->CRT->ResizeTarget(ViewportSize.X, ViewportSize.Y);
+    }
 
     TMap<FVector2D, FVector2D> Temp_Views;
     for (const FPlayerViews Each_View : this->View_Ratios)

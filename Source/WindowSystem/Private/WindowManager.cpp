@@ -20,6 +20,12 @@ void UFF_WindowSubsystem::Deinitialize()
 		UnhookWindowsHookEx(Hook_LMB);
 	}
 
+	this->DelegateLMBHook.RemoveAll(this);
+	this->DelegateLMBHook.Clear();
+
+	this->DelegateLayoutChanged.RemoveAll(this);
+	this->DelegateLayoutChanged.Clear();
+
 	this->RemoveDragDropHandlerFromMV();
 	this->CloseAllWindows();
 
@@ -45,6 +51,7 @@ void UFF_WindowSubsystem::OnWorldTickStart(UWorld* World, ELevelTick TickType, f
 	}
 
 	this->AddDragDropHandlerToMV();
+	this->InitMouseHook();
 
 	if (this->WorldTickStartHandle.IsValid())
 	{
@@ -137,6 +144,13 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 	{
 		return;
 	}
+
+	UWorld* World = GEngine->GetCurrentPlayWorld();
+
+	if (!IsValid(World))
+	{
+		return;
+	}
 	
 	FVector2D ViewportSize = FVector2D();
 	this->CustomViewport->GetViewportSize(ViewportSize);
@@ -146,78 +160,29 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 		return;
 	}
 
-	const TArray<ULocalPlayer*>& Temp_Player_List = GEngine->GetGamePlayers(this->CustomViewport);
-	const int32 Player_Count = Temp_Player_List.Num();
+	const TArray<ULocalPlayer*>& Temp_Players = GEngine->GetGamePlayers(this->CustomViewport);
+	const int32 Player_Count = Temp_Players.Num();
 
 	if (Player_Count == 1)
 	{
-		//const FVector2D Origin_1 = Temp_Player_List[0]->Origin;
-		//this->CustomViewport->FrameTarget = Origin_1 * ViewportSize;
-
 		return;
 	}
 
-	if (Player_Count == 2)
+	const int32 PlayerControllerId = UGameplayStatics::GetPlayerControllerID(Temp_Players[0]->GetPlayerController(World));
+
+	for (ULocalPlayer* Each_Player : Temp_Players)
 	{
-		const FVector2D Size_1 = Temp_Player_List[0]->Size;
-		const FVector2D Origin_1 = Temp_Player_List[0]->Origin;
-		const FVector2D TopLeft_1 = Origin_1 * ViewportSize;
-		const FVector2D BottomRight_1 = (Origin_1 + Size_1) * ViewportSize;
+		const FVector2D Origin_Ratio = Each_Player->Origin;
+		const FVector2D Size_Ratio = Each_Player->Size;
+		const FVector2D Actual_Origin = ViewportSize * Origin_Ratio;
+		const FVector2D Actual_Size = ViewportSize * Size_Ratio;
 
-		const FVector2D Size_2 = Temp_Player_List[1]->Size;
-		const FVector2D Origin_2 = Temp_Player_List[1]->Origin;
-		const FVector2D TopLeft_2 = Origin_2 * ViewportSize;
-		const FVector2D BottomRight_2 = (Origin_2 + Size_2) * ViewportSize;
-
-		// Player 0
-		if (In_Position.X >= TopLeft_1.X && In_Position.X <= BottomRight_1.X && In_Position.Y >= TopLeft_1.Y && In_Position.Y <= BottomRight_1.Y)
+		if (In_Position.X >= Actual_Origin.X && In_Position.X <= (Actual_Origin.X + Actual_Size.X) && In_Position.Y >= Actual_Origin.Y && In_Position.Y <= (Actual_Origin.Y + Actual_Size.Y))
 		{
-			if (this->ActualPlayerIndex == 0)
-			{
-				this->CustomViewport->FrameTarget = Origin_1 * ViewportSize;
-				this->CustomViewport->InitTextures();
-			}
-
-			else if (this->ActualPlayerIndex == 1)
-			{
-				this->CustomViewport->FrameTarget = Origin_1 * ViewportSize;
-				this->CustomViewport->InitTextures();
-
-				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
-				this->ActualPlayerIndex = 0;
-			}
+			Each_Player->SetControllerId(0);
+			this->CustomViewport->FrameTarget = Actual_Origin;
+			this->CustomViewport->InitTextures();
 		}
-
-		// Player 1
-		else if (In_Position.X >= TopLeft_2.X && In_Position.X <= BottomRight_2.X && In_Position.Y >= TopLeft_2.Y && In_Position.Y <= BottomRight_2.Y)
-		{
-			if (this->ActualPlayerIndex == 0)
-			{
-				this->CustomViewport->FrameTarget = Origin_2 * ViewportSize;
-				this->CustomViewport->InitTextures();
-
-				UWindowSystemBPLibrary::PossesLocalPlayer(1, -1);
-				this->ActualPlayerIndex = 1;
-			}
-
-			else if (this->ActualPlayerIndex == 1)
-			{
-				this->CustomViewport->FrameTarget = Origin_2 * ViewportSize;
-				this->CustomViewport->InitTextures();
-			}
-		}
-
-		return;
-	}
-
-	else if (Player_Count == 3)
-	{
-		// To be implemented.
-	}
-
-	else if (Player_Count == 4)
-	{
-		// To be implemented.
 	}
 }
 

@@ -64,8 +64,6 @@ private:
 	UFUNCTION()
 	virtual void OnViewportDetected(FVector2D In_Position, FLinearColor In_Color);
 
-	int32 ActualPlayerIndex = 0;
-
 public:
 
 	UPROPERTY()
