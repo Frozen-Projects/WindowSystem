@@ -1,33 +1,23 @@
-# PURPOSES AND FEATURES:
-- Runtime external window creation with UMG support.
-- Runtime **Save and Select File Dialogs**
+# FEATURES
+- All features are runtime oriented.
+- Custom viewport layout for local multiplayer
+	- https://www.youtube.com/watch?v=GG_Q1DBG1j8
+- External window creation with UMG support.
+- Save and open file dialog
 - File drag drop supports for main game window and external windows. It returns, content paths and content locations.
-- If operating system is **Windows 11**, created windows will have **rounded corners**.
 - Hover, window move and close detection events.
 
 # USAGE:
-- Place **BP_Template_WinMan** to world. This is your window manager.
-	- It is in **Plugins/WindowSystem/Content/BPs**
-	- You can create a new one based on your needs.
-	- It has to be only **one manager actor** in scene.
-
-- Create and construct your widget.
-
+- Create your widget but NOT add it to the viewport
 - **Spawn Actor From Class** (use **EachWindow** class)
-
-- Connect your manager and widget to **Spawn Actor From Class**
-
+- Connect your created widget to EachWindow actor's widget pin.
 - Set your settings
 	- You have to give a unique tag **(optionally meaningful)** to your window.
-
-- All window control functions are virtual functions of spawned EachWindow class object.
-
-- You can access all created windows with **Manager->MAP_Windows (FName, AEachWindow)**. If you know the tag of window which you want to control, you can access it from this map.
-
+- All window control functions are virtual functions of spawned **EachWindow** actor.
+- There is a game subsystem called **FF_WindowSubsystem**. It store all your windows. You can use it to programmaticaly access them.
 - If you want to enable file drag drop feature for created window, you have two options.
 	- You can enable it when set enable **bIsFileDropEnabled** boolean on **Spawn Actor from Class**
 	- You can enable it in the future with **Set File Drag Drop Support** function.
-	
 - If you want to enable file drag drop feature for main window, just enable **bAllowMainWindow** boolean anytime.
 
 # DISCLAIMER
@@ -71,44 +61,29 @@
 
 # WINDOW VARIABLES:
 - Is Top Most
-
 - Has Close
-	- We recommend to set this false. Because if user close a runtime generated window, all contents and its referances will be gone. So, use it with cautious.
-
+	- We recommend to set this false. Because if user close a runtime generated window, all contents and its referances will be gone. So, use it with cautious.)
 - Force Volatile
-
 - Preserve Aspect Ratio
 	- When user change size of that window, should window preserve it's aspect ratio or not.
-
 - Minimized
 	- Create window as minimized or not.
-
 - Supports Maximize
-
 - Supports Minimize
-
 - Set Mirror Window
-
 - In Window Tag (You should absolutely set this with a meaningful and unique tag without space. Because we use this to record and get windows)
-
 - In Window Title
 	- If you give a title, it will be visible on window's title bar.
 	- It is different than WindowTag as variable aspect but you can use same value.
 	- You can use more readable values with it.
-
 - In Tooltip
 	- When user hovered that window, there will be additional information as tooltip.
-
 - Window Size
-
 - Minimum Size
 	- Minimum acceptable size for that window.
-
 - Window Position
-
 - Border Thick
 	- Thickness between frame and UMG content.
-
 - In Opacity
 	- Initial opacity value of that window.
 
