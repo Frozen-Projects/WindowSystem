@@ -132,49 +132,49 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "", ExposeOnSpawn = "true"))
 	FMargin BorderThick = FMargin(5.f);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set File Drag Drop Support", Keywords = "set, file, drag, drop, support, child, window, windows"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set File Drag Drop Support", Keywords = "set, file, drag, drop, support, child, window, windows"), Category = "Frozen Forest|Window System|Set")
 	virtual bool SetFileDragDropSupport();
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Take Screenshot of Window", ToolTip = "Export To Disk functions should come after a delay node.", Keywords = "take, ss, screenshot, window"), Category = "Window System|Export")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Take Screenshot of Window", ToolTip = "Export To Disk functions should come after a delay node.", Keywords = "take, ss, screenshot, window"), Category = "Frozen Forest|Window System|Export")
 	virtual bool TakeSSWindow(UTextureRenderTarget2D*& OutTextureRenderTarget2D);
 
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Window Top Most", Keywords = "is, window, top, most"), Category = "Window System|Check")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Is Window Top Most", Keywords = "is, window, top, most"), Category = "Frozen Forest|Window System|Check")
 	virtual bool IsWindowTopMost(bool bUseNative = true);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bring Window Front", ToolTip = "It brings UE SWindow to front.", Keywords = "bring, window, front"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bring Window Front", ToolTip = "It brings UE SWindow to front.", Keywords = "bring, window, front"), Category = "Frozen Forest|Window System|Set")
 	virtual bool BringWindowFront(bool bFlashWindow);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Top Most Option", ToolTip = "Description.", Keywords = "set, window, positon, location, move"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Top Most Option", ToolTip = "Description.", Keywords = "set, window, positon, location, move"), Category = "Frozen Forest|Window System|Set")
 	virtual bool ToggleTopMostOption();
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Show On Task Bar", Keywords = "toggle, show, taskbar, hide"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Show On Task Bar", Keywords = "toggle, show, taskbar, hide"), Category = "Frozen Forest|Window System|Set")
 	virtual bool ToggleShowOnTaskBar(bool In_bShowOnTaskBar);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Opacity", Keywords = "set, all, window, windows, opacity"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Opacity", Keywords = "set, all, window, windows, opacity"), Category = "Frozen Forest|Window System|Set")
 	virtual bool ToggleOpacity(bool bEnable, bool bPassDragDrop);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Opacity", Keywords = "set, window, opacity"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Opacity", Keywords = "set, window, opacity"), Category = "Frozen Forest|Window System|Set")
 	virtual bool SetWindowOpacity(float NewOpacity);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window State", Keywords = "set, window, state"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window State", Keywords = "set, window, state"), Category = "Frozen Forest|Window System|Set")
 	virtual bool SetWindowState(EWindowState OutWindowState);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Shape", ToolTip = "Description.", Keywords = "set, window, shape"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Shape", ToolTip = "Description.", Keywords = "set, window, shape"), Category = "Frozen Forest|Window System|Set")
 	virtual bool SetWindowShape(FMargin InExtend, float InDuration, float NewOpacity);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Position", ToolTip = "Description.", Keywords = "set, window, positon, location, move"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Position", ToolTip = "Description.", Keywords = "set, window, positon, location, move"), Category = "Frozen Forest|Window System|Set")
 	virtual bool SetWindowPosition(FVector2D InNewPosition);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Title", ToolTip = "Description.", Keywords = "set, window, title"), Category = "Window System|Set")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set Window Title", ToolTip = "Description.", Keywords = "set, window, title"), Category = "Frozen Forest|Window System|Set")
 	virtual bool SetWindowTitle(FText InNewTitle);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Window State", Keywords = "get, window, state"), Category = "Window System|Get")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Window State", Keywords = "get, window, state"), Category = "Frozen Forest|Window System|Get")
 	virtual bool GetWindowState(EWindowState& OutWindowState);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Window Position", Keywords = "get, window, position, location"), Category = "Window System|Get")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Window Position", Keywords = "get, window, position, location"), Category = "Frozen Forest|Window System|Get")
 	virtual bool GetWindowPosition(FVector2D& OutPosition);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Window Title", Keywords = "get, window, title"), Category = "Window System|Get")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Window Title", Keywords = "get, window, title"), Category = "Frozen Forest|Window System|Get")
 	virtual bool GetWindowTitle(FText& OutWindowTitle);
 
 };
