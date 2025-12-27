@@ -20,6 +20,10 @@ private:
 	UPROPERTY()
 	UFF_WindowSubsystem* WindowSubsystem = nullptr;
 
+	TWeakObjectPtr<UWorld> Playing_World = nullptr;
+	FTimerHandle Hover_Timer;
+	FTimerDelegate Hover_Delegate;
+
 protected:
 
 	// Called when the game starts or when spawned.
@@ -42,10 +46,6 @@ protected:
 
 	// We use it to destroy contents of window.
 	virtual void CloseWindowCallback();
-
-	FTimerHandle Hover_Timer;
-
-	FTimerDelegate Hover_Delegate;
 
 public:
 

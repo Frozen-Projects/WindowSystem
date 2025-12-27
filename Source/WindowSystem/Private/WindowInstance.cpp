@@ -52,16 +52,25 @@ void AEachWindow_SWindow::BeginPlay()
 
 	if (this->bEnableHoverDetection)
 	{
-		Hover_Delegate = FTimerDelegate::CreateUObject(this, &AEachWindow_SWindow::NotifyWindowHovered, false);
-		GEngine->GetCurrentPlayWorld()->GetTimerManager().SetTimer(Hover_Timer, Hover_Delegate, this->HoverDetectionTime, true);
+		UWorld* Temp_World = GEngine->GetCurrentPlayWorld();
+
+		if (!IsValid(Temp_World))
+		{
+			return;
+		}
+
+		this->Playing_World = Temp_World;
+		this->Hover_Delegate = FTimerDelegate::CreateUObject(this, &AEachWindow_SWindow::NotifyWindowHovered, false);
+		this->Playing_World->GetTimerManager().SetTimer(Hover_Timer, this->Hover_Delegate, this->HoverDetectionTime, true);
 	}
 }
 
 // Called when the game ends.
 void AEachWindow_SWindow::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (Hover_Timer.IsValid())
+	if (this->Playing_World.IsValid() && this->Hover_Timer.IsValid())
 	{
+		this->Playing_World->GetTimerManager().ClearTimer(this->Hover_Timer);
 		Hover_Timer.Invalidate();
 	}
 	
