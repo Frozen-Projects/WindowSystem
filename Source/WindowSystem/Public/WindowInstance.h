@@ -111,8 +111,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "", ExposeOnSpawn = "true"))
 	bool bEnableHoverDetection = false;
 
-	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "", ExposeOnSpawn = "true"))
-	double HoverDetectionTime = 0.03;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))
+	float HoverDetectionTime = 0.03f;
 
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "", ExposeOnSpawn = "true"))
 	FLinearColor TitleColor = FLinearColor::White;
