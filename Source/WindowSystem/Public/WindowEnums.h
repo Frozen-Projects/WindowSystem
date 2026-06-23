@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WindowEnums.generated.h"
 
 UENUM(BlueprintType)
 enum class EWindowState : uint8
@@ -20,6 +21,5 @@ enum class EWindowTypeBp : uint8
 	ToolTip				UMETA(DisplayName = "ToolTip"),
 	Notification		UMETA(DisplayName = "Notification"),
 	CursorDecorator		UMETA(DisplayName = "CursorDecorator"),
-	GameWindow			UMETA(DisplayName = "GameWindow"),
 };
 ENUM_CLASS_FLAGS(EWindowTypeBp)

@@ -159,8 +159,8 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		return false;
 	}
 
-	// Styles
-	EWindowType WindowType = EWindowType::GameWindow;
+	EWindowType WindowType = EWindowType::Normal;
+	
 	switch (WindowTypeBp)
 	{
 		case EWindowTypeBp::Normal:
@@ -177,9 +177,6 @@ bool AEachWindow_SWindow::CreateNewWindow()
 			break;
 		case EWindowTypeBp::CursorDecorator:
 			WindowType = EWindowType::CursorDecorator;
-			break;
-		case EWindowTypeBp::GameWindow:
-			WindowType = EWindowType::GameWindow;
 			break;
 	}
 
