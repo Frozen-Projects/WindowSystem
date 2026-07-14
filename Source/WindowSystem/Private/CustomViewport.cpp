@@ -259,6 +259,28 @@ void UCustomViewport::UpdateAssets()
 
     this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
     this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
+
+	// If you have a problem about seeing the background, try to move below section to ``CalculateBackground`` function. But it will be called every frame, so it is not recommended.
+
+    FDrawToRenderTargetContext Context;
+    UCanvas* Canvas = nullptr;
+    FVector2D Size;
+    UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this->World, this->CRT, Canvas, Size, Context);
+
+    for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
+    {
+        // Draw Frame first to avoid overlapping issues.
+
+        if (this->FrameTarget == Each_View.Key)
+        {
+            Canvas->K2_DrawMaterial(this->MAT_Highlight, Each_View.Key + FVector2D(-(this->FrameThickness / 2)), Each_View.Value + FVector2D(this->FrameThickness), FVector2D(0.f), FVector2D(1.f));
+        }
+
+        // Then Cut.
+        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
+    }
+
+    UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
 }
 
 void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
@@ -268,7 +290,7 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
         return;
     }
 
-    if (!IsValid(this->World) || !IsValid(this->MAT_BG) || !IsValid(this->MAT_Cut) || !IsValid(this->MAT_Frame) || CRT_Name.IsNone())
+    if (!IsValid(this->World) || !IsValid(this->MAT_BG) || !IsValid(this->MAT_Cut) || !IsValid(this->MAT_Highlight) || CRT_Name.IsNone())
     {
         return;
     }
@@ -298,28 +320,8 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
 		this->UpdateAssets();
 	}
 
-    FDrawToRenderTargetContext Context;
-    UCanvas* Canvas = nullptr;
-    FVector2D Size;
-    UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this->World, this->CRT, Canvas, Size, Context);
-
-    for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
-    {
-		// Draw Frame first to avoid overlapping issues.
-
-        if (this->FrameTarget == Each_View.Key)
-        {
-            Canvas->K2_DrawMaterial(this->MAT_Frame, Each_View.Key + FVector2D(-(this->FrameThickness / 2)), Each_View.Value + FVector2D(this->FrameThickness), FVector2D(0.f), FVector2D(1.f));
-        }
-
-		// Then Cut.
-        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
-    }
-
-    UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
-
     FCanvasTileItem TileItem(FVector2D(0, 0), this->MI_BG->GetRenderProxy(), ViewportSize, FVector2D(0.f, 0.f), FVector2D(1.f, 1.f));
-    TileItem.BlendMode = SE_BLEND_Opaque;
+    TileItem.BlendMode = ESimpleElementBlendMode::SE_BLEND_Opaque;
 
     In_SceneCanvas->DrawItem(TileItem);
 }
@@ -346,16 +348,16 @@ bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRa
     return true;
 }
 
-bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name, int32 In_Thickness)
+bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Highlight, FName In_CRT_Name, int32 In_Thickness)
 {
-    if (!IsValid(In_MAT_BG) || !IsValid(In_MAT_Cut) || !IsValid(In_MAT_Frame) || In_CRT_Name.IsNone())
+    if (!IsValid(In_MAT_BG) || !IsValid(In_MAT_Cut) || !IsValid(In_MAT_Highlight) || In_CRT_Name.IsNone())
     {
         return false;
     }
 
 	this->MAT_BG = In_MAT_BG;
 	this->MAT_Cut = In_MAT_Cut;
-	this->MAT_Frame = In_MAT_Frame;
+	this->MAT_Highlight = In_MAT_Highlight;
 	this->CRT_Name = In_CRT_Name;
 	this->FrameThickness = In_Thickness < 10 ? 10 : In_Thickness;
 

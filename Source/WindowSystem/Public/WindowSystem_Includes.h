@@ -21,6 +21,8 @@
 #include "CustomViewport.h"
 
 THIRD_PARTY_INCLUDES_START
+#include <string>
+
 #ifdef _WIN64
 #include "Windows/WindowsHWrapper.h"		// Necessary include.
 #include "Windows/WindowsApplication.h"		// File Drag Drop Message Handler.

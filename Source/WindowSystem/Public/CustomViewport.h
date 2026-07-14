@@ -45,7 +45,7 @@ private:
     UMaterialInterface* MAT_Cut = nullptr;
 
     UPROPERTY()
-    UMaterialInterface* MAT_Frame = nullptr;
+    UMaterialInterface* MAT_Highlight = nullptr;
 
     UPROPERTY()
     UCanvasRenderTarget2D* CRT = nullptr;
@@ -90,7 +90,7 @@ public:
 	FVector2D FrameTarget = FVector2D::ZeroVector;
 
     virtual bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);
-	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Frame, FName In_CRT_Name = "Canvas", int32 In_Thickness = 10);
+	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Highlight, FName In_CRT_Name = "Canvas", int32 In_Thickness = 10);
     virtual void ToggleBackground(bool bActive = true);
     virtual void UpdateAssets();
 

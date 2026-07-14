@@ -34,9 +34,12 @@ UDELEGATE(BlueprintAuthorityOnly)
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateSaveFile, bool, bIsSaveSuccessful, FString, OutFileName);
 
 UCLASS()
-class UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
+class WINDOWSYSTEM_API UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
+
+	static std::wstring UTF8ToWide(FString InString);
+	static void SelectFileFromDialog_Internal(FSelectedFiles& OutFileNames, const FString& InDialogName, const FString& InOkLabel, FString InDefaultPath, TMap<FString, FString> InExtensions, int32 DefaultExtensionIndex, bool bIsNormalizeOutputs = true, bool bAllowFolderSelection = false);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Main Window Title", Keywords = "get, window, title, main"), Category = "Frozen Forest|Window System|Get")
 	static FText GetMainWindowTitle();

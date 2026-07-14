@@ -19,198 +19,184 @@ FText UWindowSystemBPLibrary::GetMainWindowTitle()
 	return GEngine->GameViewport->GetWindow().ToSharedRef().Get().GetTitle();
 }
 
+std::wstring UWindowSystemBPLibrary::UTF8ToWide(FString InString)
+{
+	if (InString.IsEmpty())
+	{
+		return {};
+	}
+
+	const auto UTF8Converter = StringCast<UTF8CHAR>(*InString);
+	const char* UTF8Data = reinterpret_cast<const char*>(UTF8Converter.Get());
+	const int32 UTF8Length = UTF8Converter.Length();
+
+	const int RequiredSize = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, UTF8Data, UTF8Length, nullptr, 0);
+
+	if (RequiredSize <= 0)
+	{
+		return {};
+	}
+
+	std::wstring WideString(static_cast<size_t>(RequiredSize), L'\0');
+
+	const int ConvertedSize = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, UTF8Data, UTF8Length, WideString.data(), RequiredSize);
+
+	if (ConvertedSize != RequiredSize)
+	{
+		return {};
+	}
+
+	return WideString;
+}
+
+void UWindowSystemBPLibrary::SelectFileFromDialog_Internal(FSelectedFiles& OutFileNames, const FString& InDialogName, const FString& InOkLabel, FString InDefaultPath, TMap<FString, FString> InExtensions, int32 DefaultExtensionIndex, bool bIsNormalizeOutputs, bool bAllowFolderSelection)
+{
+	IFileOpenDialog* FileOpenDialog;
+	HRESULT FileDialogInstance = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_PPV_ARGS(&FileOpenDialog));
+
+	if (!SUCCEEDED(FileDialogInstance))
+	{
+		FileOpenDialog->Release();
+		CoUninitialize();
+
+		OutFileNames.IsSuccessfull = false;
+		OutFileNames.IsFolder = bAllowFolderSelection;
+		
+		return;
+	}
+
+	TArray<std::wstring> FilterNames;
+	TArray<std::wstring> FilterPatterns;
+	TArray<COMDLG_FILTERSPEC> FilterSpecs;
+
+	const int32 ExtensionCount = InExtensions.Num();
+
+	FilterNames.Reserve(ExtensionCount);
+	FilterPatterns.Reserve(ExtensionCount);
+	FilterSpecs.Reserve(ExtensionCount);
+
+	for (const TPair<FString, FString>& Each_Extension : InExtensions)
+	{
+		FilterNames.Add(UTF8ToWide(Each_Extension.Key));
+		FilterPatterns.Add(UTF8ToWide(Each_Extension.Value));
+	}
+
+	for (int32 FilterIndex = 0; FilterIndex < ExtensionCount; ++FilterIndex)
+	{
+		COMDLG_FILTERSPEC EachFilterSpec{};
+		EachFilterSpec.pszName = FilterNames[FilterIndex].c_str();
+		EachFilterSpec.pszSpec = FilterPatterns[FilterIndex].c_str();
+
+		FilterSpecs.Add(EachFilterSpec);
+	}
+
+	FileOpenDialog->SetFileTypes(InExtensions.Num(), FilterSpecs.GetData());
+
+	// Starts from 1
+	FileOpenDialog->SetFileTypeIndex(DefaultExtensionIndex + 1);
+
+	DWORD dwOptions;
+	FileOpenDialog->GetOptions(&dwOptions);
+
+	// https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/ne-shobjidl_core-_fileopendialogoptions
+	FileOpenDialog->SetOptions(dwOptions | FOS_ALLOWMULTISELECT | FOS_FILEMUSTEXIST | FOS_OKBUTTONNEEDSINTERACTION | (bAllowFolderSelection ? FOS_PICKFOLDERS : NULL));
+
+	if (!InDialogName.IsEmpty())
+	{
+		FileOpenDialog->SetTitle(*InDialogName);
+	}
+
+	if (!InOkLabel.IsEmpty())
+	{
+		FileOpenDialog->SetOkButtonLabel(*InOkLabel);
+	}
+
+	if (!InDefaultPath.IsEmpty())
+	{
+		FPaths::MakePlatformFilename(InDefaultPath);
+
+		IShellItem* DefaultFolder = NULL;
+		HRESULT DefaultPathResult = SHCreateItemFromParsingName(*InDefaultPath, nullptr, IID_PPV_ARGS(&DefaultFolder));
+
+		if (SUCCEEDED(DefaultPathResult))
+		{
+			FileOpenDialog->SetFolder(DefaultFolder);
+			DefaultFolder->Release();
+		}
+	}
+
+	HWND WindowHandle = reinterpret_cast<HWND>(GEngine->GameViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
+	FileDialogInstance = FileOpenDialog->Show(WindowHandle);
+
+	if (!SUCCEEDED(FileDialogInstance))
+	{
+		FileOpenDialog->Release();
+		CoUninitialize();
+
+		OutFileNames.IsSuccessfull = false;
+		OutFileNames.IsFolder = bAllowFolderSelection;
+		return;
+	}
+
+	IShellItemArray* ShellItems;
+	FileDialogInstance = FileOpenDialog->GetResults(&ShellItems);
+
+	if (!SUCCEEDED(FileDialogInstance))
+	{
+		FileOpenDialog->Release();
+		CoUninitialize();
+
+		OutFileNames.IsSuccessfull = false;
+		OutFileNames.IsFolder = bAllowFolderSelection;
+		return;
+	}
+
+	DWORD ItemCount;
+	ShellItems->GetCount(&ItemCount);
+
+	TArray<FString> Array_FilePaths;
+
+	for (DWORD ItemIndex = 0; ItemIndex < ItemCount; ItemIndex++)
+	{
+		IShellItem* EachItem;
+		ShellItems->GetItemAt(ItemIndex, &EachItem);
+
+		PWSTR EachFilePathSTR = NULL;
+		EachItem->GetDisplayName(SIGDN_FILESYSPATH, &EachFilePathSTR);
+
+		FString EachFilePath = EachFilePathSTR;
+
+		if (bIsNormalizeOutputs == true)
+		{
+			FPaths::NormalizeFilename(EachFilePath);
+		}
+
+		Array_FilePaths.Add(EachFilePath);
+
+		EachItem->Release();
+	}
+
+	ShellItems->Release();
+	FileOpenDialog->Release();
+	CoUninitialize();
+
+	OutFileNames.IsSuccessfull = !Array_FilePaths.IsEmpty();
+	OutFileNames.IsFolder = bAllowFolderSelection;
+	OutFileNames.Strings = Array_FilePaths;
+}
+
 void UWindowSystemBPLibrary::SelectFileFromDialog(FDelegateOpenFile DelegateFileNames, const FString InDialogName, const FString InOkLabel, const FString InDefaultPath, TMap<FString, FString> InExtensions, int32 DefaultExtensionIndex, bool bIsNormalizeOutputs, bool bAllowFolderSelection)
 {
 	AsyncTask(ENamedThreads::AnyNormalThreadNormalTask, [DelegateFileNames, InDialogName, InOkLabel, InDefaultPath, InExtensions, DefaultExtensionIndex, bIsNormalizeOutputs, bAllowFolderSelection]()
 		{
-			IFileOpenDialog* FileOpenDialog;
-			HRESULT FileDialogInstance = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_PPV_ARGS(&FileOpenDialog));
+			FSelectedFiles OutFileNames;
+			UWindowSystemBPLibrary::SelectFileFromDialog_Internal(OutFileNames, InDialogName, InOkLabel, InDefaultPath, InExtensions, DefaultExtensionIndex, bIsNormalizeOutputs, bAllowFolderSelection);
 
-			IShellItemArray* ShellItems;
-			TArray<FString> Array_FilePaths;
-
-			// If dialog instance successfully created.
-			if (SUCCEEDED(FileDialogInstance))
-			{
-				// https://stackoverflow.com/questions/70174174/c-com-comdlg-filterspec-array-overrun
-				int32 ExtensionCount = InExtensions.Num();
-				COMDLG_FILTERSPEC* ExtensionArray = new COMDLG_FILTERSPEC[ExtensionCount];
-				COMDLG_FILTERSPEC* EachExtension = ExtensionArray;
-
-				TArray<FString> ExtensionKeys;
-				InExtensions.GetKeys(ExtensionKeys);
-
-				TArray<FString> ExtensionValues;
-				InExtensions.GenerateValueArray(ExtensionValues);
-
-				for (int32 ExtensionIndex = 0; ExtensionIndex < ExtensionCount; ExtensionIndex++)
+			AsyncTask(ENamedThreads::GameThread, [DelegateFileNames, OutFileNames]()
 				{
-					EachExtension->pszName = *ExtensionKeys[ExtensionIndex];
-					EachExtension->pszSpec = *ExtensionValues[ExtensionIndex];
-					++EachExtension;
+					DelegateFileNames.ExecuteIfBound(OutFileNames);
 				}
-
-				FileOpenDialog->SetFileTypes(ExtensionCount, ExtensionArray);
-
-				// Starts from 1
-				FileOpenDialog->SetFileTypeIndex(DefaultExtensionIndex + 1);
-
-				DWORD dwOptions;
-				FileOpenDialog->GetOptions(&dwOptions);
-
-				if (bAllowFolderSelection == true)
-				{
-					// https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/ne-shobjidl_core-_fileopendialogoptions
-					FileOpenDialog->SetOptions(dwOptions | FOS_PICKFOLDERS | FOS_ALLOWMULTISELECT | FOS_FILEMUSTEXIST | FOS_OKBUTTONNEEDSINTERACTION);
-				}
-
-				else
-				{
-					// https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/ne-shobjidl_core-_fileopendialogoptions
-					FileOpenDialog->SetOptions(dwOptions | FOS_ALLOWMULTISELECT | FOS_FILEMUSTEXIST | FOS_OKBUTTONNEEDSINTERACTION);
-				}
-
-				if (InDialogName.IsEmpty() != true)
-				{
-					FileOpenDialog->SetTitle(*InDialogName);
-				}
-
-				if (InOkLabel.IsEmpty() != true)
-				{
-					FileOpenDialog->SetOkButtonLabel(*InOkLabel);
-				}
-
-				if (InDefaultPath.IsEmpty() != true)
-				{
-					FString DefaultPathString = InDefaultPath;
-
-					FPaths::MakePlatformFilename(DefaultPathString);
-
-					IShellItem* DefaultFolder = NULL;
-					HRESULT DefaultPathResult = SHCreateItemFromParsingName(*DefaultPathString, nullptr, IID_PPV_ARGS(&DefaultFolder));
-
-					if (SUCCEEDED(DefaultPathResult))
-					{
-						FileOpenDialog->SetFolder(DefaultFolder);
-						DefaultFolder->Release();
-					}
-				}
-
-				HWND WindowHandle = reinterpret_cast<HWND>(GEngine->GameViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
-				FileDialogInstance = FileOpenDialog->Show(WindowHandle);
-
-				// If dialog successfully showed up.
-				if (SUCCEEDED(FileDialogInstance))
-				{
-					FileDialogInstance = FileOpenDialog->GetResults(&ShellItems);
-
-					// Is results got.
-					if (SUCCEEDED(FileDialogInstance))
-					{
-						DWORD ItemCount;
-						ShellItems->GetCount(&ItemCount);
-
-						for (DWORD ItemIndex = 0; ItemIndex < ItemCount; ItemIndex++)
-						{
-							IShellItem* EachItem;
-							ShellItems->GetItemAt(ItemIndex, &EachItem);
-
-							PWSTR EachFilePathSTR = NULL;
-							EachItem->GetDisplayName(SIGDN_FILESYSPATH, &EachFilePathSTR);
-
-							FString EachFilePath = EachFilePathSTR;
-
-							if (bIsNormalizeOutputs == true)
-							{
-								FPaths::NormalizeFilename(EachFilePath);
-							}
-
-							Array_FilePaths.Add(EachFilePath);
-
-							EachItem->Release();
-						}
-
-						ShellItems->Release();
-						FileOpenDialog->Release();
-						CoUninitialize();
-
-						AsyncTask(ENamedThreads::GameThread, [DelegateFileNames, Array_FilePaths, bAllowFolderSelection]()
-							{
-								if (Array_FilePaths.IsEmpty() == false)
-								{
-									FSelectedFiles SelectedFiles;
-									SelectedFiles.IsSuccessfull = true;
-									SelectedFiles.IsFolder = bAllowFolderSelection;
-									SelectedFiles.Strings = Array_FilePaths;
-
-									DelegateFileNames.ExecuteIfBound(SelectedFiles);
-								}
-
-								else
-								{
-									FSelectedFiles SelectedFiles;
-									SelectedFiles.IsSuccessfull = false;
-									SelectedFiles.IsFolder = bAllowFolderSelection;
-
-									DelegateFileNames.ExecuteIfBound(SelectedFiles);
-								}
-							}
-						);
-
-					}
-
-					// Function couldn't get results.
-					else
-					{
-						AsyncTask(ENamedThreads::GameThread, [DelegateFileNames, ShellItems, FileOpenDialog, bAllowFolderSelection]()
-							{
-								FileOpenDialog->Release();
-								CoUninitialize();
-
-								FSelectedFiles SelectedFiles;
-								SelectedFiles.IsSuccessfull = false;
-								SelectedFiles.IsFolder = bAllowFolderSelection;
-
-								DelegateFileNames.ExecuteIfBound(SelectedFiles);
-							}
-						);
-					}
-				}
-
-				// Dialog didn't show up.
-				else
-				{
-					AsyncTask(ENamedThreads::GameThread, [DelegateFileNames, FileOpenDialog, ShellItems, bAllowFolderSelection]()
-						{
-							FileOpenDialog->Release();
-							CoUninitialize();
-
-							FSelectedFiles SelectedFiles;
-							SelectedFiles.IsSuccessfull = false;
-							SelectedFiles.IsFolder = bAllowFolderSelection;
-
-							DelegateFileNames.ExecuteIfBound(SelectedFiles);
-						}
-					);
-				}
-			}
-
-			// Function couldn't create dialog.
-			else
-			{
-				AsyncTask(ENamedThreads::GameThread, [DelegateFileNames, FileOpenDialog, ShellItems, bAllowFolderSelection]()
-					{
-						FileOpenDialog->Release();
-						CoUninitialize();
-
-						FSelectedFiles SelectedFiles;
-						SelectedFiles.IsSuccessfull = false;
-						SelectedFiles.IsFolder = bAllowFolderSelection;
-
-						DelegateFileNames.ExecuteIfBound(SelectedFiles);
-					}
-				);
-			}
+			);
 		}
 	);
 }
