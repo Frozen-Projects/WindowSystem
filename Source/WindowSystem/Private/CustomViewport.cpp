@@ -36,7 +36,6 @@ void UCustomViewport::LayoutPlayers()
 {
     UpdateActiveSplitscreenType();
 
-    const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
     const TArray<ULocalPlayer*>& PlayerList = GetOuterUEngine()->GetGamePlayers(this);
     const int32 Player_Count = PlayerList.Num();
 
@@ -46,8 +45,10 @@ void UCustomViewport::LayoutPlayers()
         this->bIsInitialsLoaded = false;
         this->View_Ratios.Reset();
         this->Old_View.Reset();
+		this->CRT->ClearColor = FLinearColor::White;
         this->FrameTarget = FVector2D::ZeroVector;
-        
+
+        this->DelegateNewLayout.Broadcast(this->View_Ratios);
         return;
     }
 
@@ -78,7 +79,8 @@ void UCustomViewport::LayoutPlayers()
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-            DelegateNewLayout.Broadcast(this->View_Ratios);
+            
+            this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
         return;
@@ -116,7 +118,8 @@ void UCustomViewport::LayoutPlayers()
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-            DelegateNewLayout.Broadcast(this->View_Ratios);
+
+            this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
         return;
@@ -159,7 +162,8 @@ void UCustomViewport::LayoutPlayers()
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-            DelegateNewLayout.Broadcast(this->View_Ratios);
+            
+            this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
         return;
@@ -207,7 +211,8 @@ void UCustomViewport::LayoutPlayers()
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-            DelegateNewLayout.Broadcast(this->View_Ratios);
+           
+            this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
         return;
@@ -255,12 +260,15 @@ void UCustomViewport::UpdateAssets()
 
     this->CRT->UpdateResource();
 
-	// If you have a problem about seeing the background, try to move below section to ``CalculateBackground`` function. But it will be called every frame, so it is not recommended.
-
     FDrawToRenderTargetContext Context;
     UCanvas* Canvas = nullptr;
     FVector2D Size;
     UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(this->World, this->CRT, Canvas, Size, Context);
+
+    if (!IsValid(Canvas))
+    {
+        return;
+    }
 
     for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
     {
