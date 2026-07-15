@@ -36,16 +36,19 @@ class WINDOWSYSTEM_API UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
 	* This is an Async function. Don't use it right after the game start. Wait couple seconds to make sure the game is fully loaded.
 	* @param InExtensions Each extension group must have only one extension. If that group has multiple variation, you should define them one by one. Writing style should be "*.extension" without quotes.
 	*/
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Save File with Dialog", ToolTip = "", Keywords = "save, file, dialog, windows, explorer"), Category = "Frozen Forest|Window System|File Dialog")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Save File with Dialog", Keywords = "save, file, dialog, windows, explorer"), Category = "Frozen Forest|Window System|File Dialog")
 	static void SaveFileDialog(FDelegateSaveFile DelegateSaveFile, const FString& InDialogName, const FString& InOkLabel, FString InDefaultPath, TMap<FString, FString> InExtensions, int32 DefaultExtensionIndex, bool bIsNormalizeOutputs = true);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Posses Local Player", ToolTip = "This is customized version of UGameViewportClient::SSSwapControllers which works on Shipping Builds.\nIf controller id is \"-1\", it will use main player's controller id which is probably 0. But else, it will use given index.", Keywords = "assign, new, controller, player, local"), Category = "Frozen Forest|Window System")
+	/*
+	* This is customized version of UGameViewportClient::SSSwapControllers which works on Shipping Builds. If controller id is "-1", it will use main player's controller id which is probably 0. But else, it will use given index.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Posses Local Player", Keywords = "assign, new, controller, player, local"), Category = "Frozen Forest|Window System")
 	static bool PossesLocalPlayer(const int32 PlayerId, const int32 ControllerId = 0);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Change Player View Size", ToolTip = "", Keywords = "change, player, view, viewport, size, position, ratio"), Category = "Frozen Forest|Window System")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Change Player View Size", Keywords = "change, player, view, viewport, size, position, ratio"), Category = "Frozen Forest|Window System")
 	static bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Widget State", ToolTip = "", Keywords = "toggle, switch, widget, state, visible, hidden, collapse"), Category = "Frozen Forest|Window System")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Widget State", Keywords = "toggle, switch, widget, state, visible, hidden, collapse"), Category = "Frozen Forest|Window System")
 	static bool ToggleWidgetState(UWidget* TargetWidget, ESlateVisibility OffMethod = ESlateVisibility::Collapsed);
 
 	/*
