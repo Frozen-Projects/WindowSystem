@@ -16,16 +16,6 @@ void UCustomViewport::UpdateCRTColor(UCanvas* Canvas, int32 Width, int32 Height)
     }
 }
 
-void UCustomViewport::UpdateActiveSplitscreenType()
-{
-    Super::UpdateActiveSplitscreenType();
-}
-
-void UCustomViewport::Tick(float DeltaTime)
-{
-    Super::Tick(DeltaTime);
-}
-
 void UCustomViewport::LayoutPlayers()
 {
     UpdateActiveSplitscreenType();
@@ -41,12 +31,6 @@ void UCustomViewport::LayoutPlayers()
         this->Old_View.Reset();
         this->CRT->ClearColor = FLinearColor::White;
         this->FrameTarget = FVector2D::ZeroVector;
-
-        if (!IsEngineExitRequested() && GetWorld() && !GetWorld()->bIsTearingDown)
-        {
-            UE_LOG(LogTemp, Error, TEXT("Player count shouldn't exceed 4 or be less than 1. Requested number = %d"), Player_Count);
-            this->DelegateNewLayout.Broadcast(this->View_Ratios);
-        }
 
         return;
     }
