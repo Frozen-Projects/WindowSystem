@@ -208,26 +208,6 @@ void UCustomViewport::Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas)
     this->CalculateBackground(In_Viewport, In_SceneCanvas);
 }
 
-bool UCustomViewport::ComparePixels(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B)
-{
-    if (A.Num() != B.Num())
-    {
-        return false;
-    }
-
-    for (const TPair<FVector2D, FVector2D>& Pair : A)
-    {
-        const FVector2D* OtherValue = B.Find(Pair.Key);
-
-        if (!OtherValue || *OtherValue != Pair.Value)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 void UCustomViewport::UpdateAssets()
 {
     if (!IsValid(CRT) || !IsValid(MAT_BG) || !IsValid(MAT_Cut) || !IsValid(MAT_Highlight) || !IsValid(GetWorld()))
@@ -244,20 +224,21 @@ void UCustomViewport::UpdateAssets()
 
     if (!IsValid(Canvas))
     {
+        UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
         return;
     }
 
-    for (const TPair<FVector2D, FVector2D>& Each_View : this->Old_View)
+    for (const FPlayerViews& Each_View : this->Old_View)
     {
         // Draw Frame first to avoid overlapping issues.
 
-        if (this->FrameTarget == Each_View.Key)
+        if (this->FrameTarget == Each_View.Position)
         {
-            Canvas->K2_DrawMaterial(this->MAT_Highlight, Each_View.Key + FVector2D(-(this->FrameThickness / 2)), Each_View.Value + FVector2D(this->FrameThickness), FVector2D(0.f), FVector2D(1.f));
+            Canvas->K2_DrawMaterial(this->MAT_Highlight, Each_View.Position + FVector2D(-(this->HighLightThickness / 2)), Each_View.Size + FVector2D(this->HighLightThickness), FVector2D(0.f), FVector2D(1.f));
         }
 
         // Then Cut.
-        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Key, Each_View.Value, FVector2D(0.f), FVector2D(1.f));
+        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Position, Each_View.Size, FVector2D(0.f), FVector2D(1.f));
     }
 
     UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
@@ -289,19 +270,29 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
         bNeedsUpdate = true;
     }
 
-    TMap<FVector2D, FVector2D> Temp_Views;
+    TArray<FPlayerViews> Temp_Views;
     for (const FPlayerViews& Each_View : this->View_Ratios)
     {
-        const FVector2D ActualPosition = ViewportSize * Each_View.Position;
-        const FVector2D ActualSize = ViewportSize * Each_View.Size;
-        Temp_Views.Add(ActualPosition, ActualSize);
+        FPlayerViews NewView;
+        NewView.Position = ViewportSize * Each_View.Position;
+        NewView.Size = ViewportSize * Each_View.Size;
+        Temp_Views.Add(MoveTemp(NewView));
     }
 
-    if (!this->ComparePixels(Temp_Views, this->Old_View))
+    if (Temp_Views != this->Old_View)
     {
         this->Old_View = MoveTemp(Temp_Views);
         bNeedsUpdate = true;
 	}
+
+    const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(World);
+    const FVector2D LocalViewportSize = ViewportGeometry.GetLocalSize();
+
+    if (this->Old_ViewportSize != LocalViewportSize)
+    {
+		this->Old_ViewportSize = LocalViewportSize;
+        bNeedsUpdate = true;
+    }
 
     if (bNeedsUpdate)
     {
@@ -345,7 +336,7 @@ bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMate
 	this->MAT_Cut = In_MAT_Cut;
 	this->MAT_Highlight = In_MAT_Highlight;
 	this->CRT_Name = In_CRT_Name;
-	this->FrameThickness = In_Thickness < 10 ? 10 : In_Thickness;
+	this->HighLightThickness = In_Thickness < 10 ? 10 : In_Thickness;
     
     this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
     this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);

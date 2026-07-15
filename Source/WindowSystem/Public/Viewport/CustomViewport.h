@@ -19,7 +19,20 @@ class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient
 
 private:
 
-    int32 FrameThickness = 10;
+    // If there is a new player, we need to reset views.
+    int32 LastPlayerCount = 0;
+
+    // Views shouldn't reset to defaults if there is no change.
+    bool bIsInitialsLoaded = false;
+
+    // We use this to forcefully stop background rendering. For example there is only one view and it is in full screen state.
+    bool bActivateBackground = true;
+
+    // Highlight for active player's view.
+    int32 HighLightThickness = 10;
+
+	// We use this to detect if app window size has changed, so we can recalculate the background.
+	FVector2D Old_ViewportSize = FVector2D::ZeroVector;
 
     UPROPERTY()
     FName CRT_Name = "Canvas";
@@ -44,24 +57,12 @@ private:
 
 	// We use this to compare if there is a change in views on background calculation.
     UPROPERTY()
-    TMap<FVector2D, FVector2D> Old_View;
+    TArray<FPlayerViews> Old_View;
 
     UFUNCTION()
     virtual void UpdateCRTColor(UCanvas* Canvas, int32 Width, int32 Height);
 
-    virtual bool ComparePixels(TMap<FVector2D, FVector2D> A, TMap<FVector2D, FVector2D> B);
     virtual void CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas);
-
-protected:
-
-    // If there is a new player, we need to reset views.
-    int32 LastPlayerCount = 0;
-
-    // Views shouldn't reset to defaults if there is no change.
-    bool bIsInitialsLoaded = false;
-
-    // We use this to forcefully stop background rendering. For example there is only one view and it is in full screen state.
-    bool bActivateBackground = true;
 
 public:
 

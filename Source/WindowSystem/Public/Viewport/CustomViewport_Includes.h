@@ -8,3 +8,5 @@
 #include "Engine/Canvas.h"
 #include "CanvasItem.h"
 #include "Engine/CanvasRenderTarget2D.h"
+
+#include "Runtime/UMG/Public/UMG.h" 
