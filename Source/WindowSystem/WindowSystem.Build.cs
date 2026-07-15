@@ -1,7 +1,5 @@
 // Some copyright should be here...
 
-using System;
-using System.IO;
 using UnrealBuildTool;
 public class WindowSystem : ModuleRules
 {
@@ -13,10 +11,8 @@ public class WindowSystem : ModuleRules
 			new string[]
 			{
 				"Core",
-				// ... add other public dependencies that you statically link with here ...
-			}
-			);
-			
+			});
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -28,15 +24,6 @@ public class WindowSystem : ModuleRules
                 "InputCore",
 				"RHI",
 				"RenderCore",
-				// ... add private dependencies that you statically link with here ...	
-			}
-			);
-		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
-			);
+			});
 	}
 }

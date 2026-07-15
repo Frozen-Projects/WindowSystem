@@ -3,6 +3,9 @@
 #include "WindowManager.h"
 #include "WindowInstance.h"		// CloseAllWindows -> Destrow window actor.
 
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/UserInterfaceSettings.h"
+
 TWeakObjectPtr<UFF_WindowSubsystem> UFF_WindowSubsystem::SelfReference;
 
 void UFF_WindowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -146,44 +149,75 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 		return;
 	}
 
-	UWorld* World = GEngine->GetCurrentPlayWorld();
+	UWorld* World = this->CustomViewport->GetWorld();
 
 	if (!IsValid(World))
 	{
 		return;
 	}
-	
-	FVector2D ViewportSize = FVector2D();
-	this->CustomViewport->GetViewportSize(ViewportSize);
 
-	if (ViewportSize.X == 0 || ViewportSize.Y == 0)
+	FVector2D PixelViewportSize = FVector2D::ZeroVector;
+	this->CustomViewport->GetViewportSize(PixelViewportSize);
+
+	if (PixelViewportSize.X <= 0.0 || PixelViewportSize.Y <= 0.0)
 	{
 		return;
 	}
 
-	const TArray<ULocalPlayer*>& Temp_Players = GEngine->GetGamePlayers(this->CustomViewport);
-	const int32 Player_Count = Temp_Players.Num();
+	const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(World);
+	const FVector2D LocalViewportSize = ViewportGeometry.GetLocalSize();
 
-	if (Player_Count == 1)
+	if (LocalViewportSize.X <= 0.0 || LocalViewportSize.Y <= 0.0)
 	{
 		return;
 	}
 
-	const int32 PlayerControllerId = UGameplayStatics::GetPlayerControllerID(Temp_Players[0]->GetPlayerController(World));
-
-	for (ULocalPlayer* Each_Player : Temp_Players)
+	if (!ViewportGeometry.IsUnderLocation(In_Position))
 	{
-		const FVector2D Origin_Ratio = Each_Player->Origin;
-		const FVector2D Size_Ratio = Each_Player->Size;
-		const FVector2D Actual_Origin = ViewportSize * Origin_Ratio;
-		const FVector2D Actual_Size = ViewportSize * Size_Ratio;
+		return;
+	}
 
-		if (In_Position.X >= Actual_Origin.X && In_Position.X <= (Actual_Origin.X + Actual_Size.X) && In_Position.Y >= Actual_Origin.Y && In_Position.Y <= (Actual_Origin.Y + Actual_Size.Y))
+	const FVector2D LocalPosition = ViewportGeometry.AbsoluteToLocal(In_Position);
+	const TArray<ULocalPlayer*>& LocalPlayers = GEngine->GetGamePlayers(this->CustomViewport);
+
+	if (LocalPlayers.Num() <= 1)
+	{
+		return;
+	}
+
+	for (ULocalPlayer* Each_Player : LocalPlayers)
+	{
+		if (!IsValid(Each_Player))
 		{
-			Each_Player->SetControllerId(0);
-			this->CustomViewport->FrameTarget = Actual_Origin;
+			continue;
+		}
+
+		const FVector2D LocalOrigin = LocalViewportSize * Each_Player->Origin;
+		const FVector2D LocalSize = LocalViewportSize * Each_Player->Size;
+		const FVector2D LocalMax = LocalOrigin + LocalSize;
+
+		const bool bIsInViewport =
+			LocalPosition.X >= LocalOrigin.X &&
+			LocalPosition.X <= LocalMax.X &&
+			LocalPosition.Y >= LocalOrigin.Y &&
+			LocalPosition.Y <= LocalMax.Y;
+
+		if (!bIsInViewport)
+		{
+			continue;
+		}
+
+		Each_Player->SetControllerId(0);
+
+		const FVector2D FrameOriginPixels = PixelViewportSize * Each_Player->Origin;
+
+		if (this->CustomViewport->FrameTarget != FrameOriginPixels)
+		{
+			this->CustomViewport->FrameTarget = FrameOriginPixels;
 			this->CustomViewport->UpdateAssets();
 		}
+
+		return;
 	}
 }
 
