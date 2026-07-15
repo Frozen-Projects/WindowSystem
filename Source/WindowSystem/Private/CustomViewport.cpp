@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "CustomViewport.h"
+#include "Viewport/CustomViewport.h"
 
 #include "Engine/Canvas.h"
 #include "CanvasItem.h"
@@ -38,10 +38,16 @@ void UCustomViewport::LayoutPlayers()
 
     const ESplitScreenType::Type SplitType = GetCurrentSplitscreenConfiguration();
     const TArray<ULocalPlayer*>& PlayerList = GetOuterUEngine()->GetGamePlayers(this);
-    const size_t Player_Count = PlayerList.Num();
+    const int32 Player_Count = PlayerList.Num();
 
     if (Player_Count <= 0)
     {
+        this->LastPlayerCount = 0;
+        this->bIsInitialsLoaded = false;
+        this->View_Ratios.Reset();
+        this->Old_View.Reset();
+        this->FrameTarget = FVector2D::ZeroVector;
+        
         return;
     }
 
@@ -68,7 +74,7 @@ void UCustomViewport::LayoutPlayers()
             Temp_Views.Add(View);
         }
 
-        if (this->View_Ratios.Num() != Temp_Views.Num())
+        if (this->View_Ratios != Temp_Views)
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
@@ -106,7 +112,7 @@ void UCustomViewport::LayoutPlayers()
             Temp_Views.Add(View);
         }
 
-        if (this->View_Ratios.Num() != Temp_Views.Num())
+        if (this->View_Ratios != Temp_Views)
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
@@ -149,7 +155,7 @@ void UCustomViewport::LayoutPlayers()
             Temp_Views.Add(View);
         }
 
-        if (this->View_Ratios.Num() != Temp_Views.Num())
+        if (this->View_Ratios != Temp_Views)
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
@@ -197,7 +203,7 @@ void UCustomViewport::LayoutPlayers()
             Temp_Views.Add(View);
         }
 
-        if (this->View_Ratios.Num() != Temp_Views.Num())
+        if (this->View_Ratios != Temp_Views)
         {
             this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
@@ -209,7 +215,7 @@ void UCustomViewport::LayoutPlayers()
 
     else if (Player_Count > 4)
     {
-        UE_LOG(LogTemp, Fatal, TEXT("Player count shouldn't exceed 4. Requested number = %d"), Player_Count);
+        UE_LOG(LogTemp, Error, TEXT("Player count shouldn't exceed 4. Requested number = %d"), Player_Count);
         return;
     }
 }
@@ -227,38 +233,27 @@ bool UCustomViewport::ComparePixels(TMap<FVector2D, FVector2D> A, TMap<FVector2D
         return false;
     }
 
-    TArray<FVector2D> A_Keys;
-    A.GenerateKeyArray(A_Keys);
-
-    TArray<FVector2D> A_Values;
-    A.GenerateValueArray(A_Values);
-
-    TArray<FVector2D> B_Keys;
-    B.GenerateKeyArray(B_Keys);
-
-    TArray<FVector2D> B_Values;
-    B.GenerateValueArray(B_Values);
-
-    if (A_Keys == B_Keys && A_Values == B_Values)
+    for (const TPair<FVector2D, FVector2D>& Pair : A)
     {
-        return true;
+        const FVector2D* OtherValue = B.Find(Pair.Key);
+
+        if (!OtherValue || *OtherValue != Pair.Value)
+        {
+            return false;
+        }
     }
 
-    else
-    {
-        return false;
-    }
+    return true;
 }
 
 void UCustomViewport::UpdateAssets()
 {
-    if (IsValid(this->CRT))
+    if (!IsValid(CRT) || !IsValid(MAT_BG) || !IsValid(MAT_Cut) || !IsValid(MAT_Highlight) || !IsValid(GetWorld()))
     {
-        this->CRT->UpdateResource();
+        return;
     }
 
-    this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
-    this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
+    this->CRT->UpdateResource();
 
 	// If you have a problem about seeing the background, try to move below section to ``CalculateBackground`` function. But it will be called every frame, so it is not recommended.
 
@@ -301,13 +296,16 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
         return;
 	}
 
+    bool bNeedsUpdate = false;
+
     if (this->CRT->SizeX != ViewportSize.X || this->CRT->SizeY != ViewportSize.Y)
     {
 		this->CRT->ResizeTarget(ViewportSize.X, ViewportSize.Y);
+        bNeedsUpdate = true;
     }
 
     TMap<FVector2D, FVector2D> Temp_Views;
-    for (const FPlayerViews Each_View : this->View_Ratios)
+    for (const FPlayerViews& Each_View : this->View_Ratios)
     {
         const FVector2D ActualPosition = ViewportSize * Each_View.Position;
         const FVector2D ActualSize = ViewportSize * Each_View.Size;
@@ -316,12 +314,17 @@ void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_Sc
 
     if (!this->ComparePixels(Temp_Views, this->Old_View))
     {
-        this->Old_View = Temp_Views;
-		this->UpdateAssets();
+        this->Old_View = MoveTemp(Temp_Views);
+        bNeedsUpdate = true;
 	}
 
+    if (bNeedsUpdate)
+    {
+        this->UpdateAssets();
+    }
+
     FCanvasTileItem TileItem(FVector2D(0, 0), this->MI_BG->GetRenderProxy(), ViewportSize, FVector2D(0.f, 0.f), FVector2D(1.f, 1.f));
-    TileItem.BlendMode = ESimpleElementBlendMode::SE_BLEND_Opaque;
+    TileItem.BlendMode = ESimpleElementBlendMode::SE_BLEND_Translucent;
 
     In_SceneCanvas->DrawItem(TileItem);
 }
@@ -333,15 +336,13 @@ void UCustomViewport::ToggleBackground(bool bActive)
 
 bool UCustomViewport::ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin)
 {
-    UEngine* const REF_Engine = GameInstance->GetEngine();
-    const int32 NumPlayers = REF_Engine->GetNumGamePlayers(this);
+    const TArray<ULocalPlayer*>& PlayerList = GetOuterUEngine()->GetGamePlayers(this);
 
-    if (NumPlayers > PlayerId + 1)
+    if (!PlayerList.IsValidIndex(PlayerId))
     {
         return false;
     }
 
-    const TArray<ULocalPlayer*>& PlayerList = GetOuterUEngine()->GetGamePlayers(this);
     PlayerList[PlayerId]->Size = NewRatio;
     PlayerList[PlayerId]->Origin = NewOrigin;
 
@@ -360,8 +361,11 @@ bool UCustomViewport::SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMate
 	this->MAT_Highlight = In_MAT_Highlight;
 	this->CRT_Name = In_CRT_Name;
 	this->FrameThickness = In_Thickness < 10 ? 10 : In_Thickness;
-
-	this->UpdateAssets();
+    
+    this->MI_BG = UMaterialInstanceDynamic::Create(this->MAT_BG, this->World);
+    this->MI_BG->SetTextureParameterValue(this->CRT_Name, this->CRT);
+	
+    this->UpdateAssets();
 
 	return true;
 }

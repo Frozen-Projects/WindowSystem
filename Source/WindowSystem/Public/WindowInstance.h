@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-// Custom Includes.
 #include "WindowManager.h"
 
 #include "WindowInstance.generated.h"

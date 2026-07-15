@@ -6,25 +6,11 @@
 
 #include "Engine/GameViewportClient.h"
 #include "Engine/ViewportSplitScreen.h"
+
 #include "WindowSystem_Includes.h"
+#include "CustomViewport_Delegates.h"
 
 #include "CustomViewport.generated.h"
-
-USTRUCT(BlueprintType)
-struct WINDOWSYSTEM_API FPlayerViews
-{
-    GENERATED_BODY()
-
-public:
-
-    UPROPERTY(BlueprintReadWrite)
-    FVector2D Size = FVector2D();
-
-    UPROPERTY(BlueprintReadWrite)
-    FVector2D Position = FVector2D();
-};
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateNewLayout, const TArray<FPlayerViews>&, Out_Views);
 
 UCLASS()
 class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient

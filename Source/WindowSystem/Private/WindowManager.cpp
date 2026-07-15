@@ -1,8 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WindowManager.h"
-
-// Custom Includes.
 #include "WindowInstance.h"		// CloseAllWindows -> Destrow window actor.
 
 TWeakObjectPtr<UFF_WindowSubsystem> UFF_WindowSubsystem::SelfReference;
@@ -74,9 +72,11 @@ void UFF_WindowSubsystem::InitMouseHook()
 		{
 			if (wParam == WM_LBUTTONDOWN)
 			{
+				FString ErrorMsg;
+
 				if (!SelfReference.IsValid())
 				{
-					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : SelfReference is not valid !";
+					ErrorMsg = FString::Printf(TEXT("WindowSystem : %s : SelfReference is not valid !"), TEXT(__FUNCTION__));
 					UE_LOG(LogTemp, Error, TEXT("%s"), *ErrorMsg);
 				}
 
@@ -84,7 +84,7 @@ void UFF_WindowSubsystem::InitMouseHook()
 
 				if (!ScreenHandle)
 				{
-					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : Failed to get Screen Handle !";
+					ErrorMsg = FString::Printf(TEXT("WindowSystem : %s : Failed to get Screen Handle !"), TEXT(__FUNCTION__));
 					UE_LOG(LogTemp, Error, TEXT("%s : %d"), *ErrorMsg, GetLastError());
 
 					return CallNextHookEx(0, nCode, wParam, lParam);
@@ -93,7 +93,7 @@ void UFF_WindowSubsystem::InitMouseHook()
 				HDC ScreenContext = GetDC(ScreenHandle);
 				if (!ScreenContext)
 				{
-					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : Failed to get Screen Context !";
+					ErrorMsg = FString::Printf(TEXT("WindowSystem : %s : Failed to get Screen Context !"), TEXT(__FUNCTION__));
 					UE_LOG(LogTemp, Error, TEXT("%s : %d"), *ErrorMsg, GetLastError());
 
 					return CallNextHookEx(0, nCode, wParam, lParam);
@@ -102,7 +102,7 @@ void UFF_WindowSubsystem::InitMouseHook()
 				POINT RawPos;
 				if (!GetCursorPos(&RawPos))
 				{
-					const FString ErrorMsg = "WindowSystem : " + FString(ANSI_TO_TCHAR(__FUNCSIG__)) + " : Failed to get Cursor Position !";
+					ErrorMsg = FString::Printf(TEXT("WindowSystem : %s : Failed to get Cursor Position !"), TEXT(__FUNCTION__));
 					UE_LOG(LogTemp, Error, TEXT("%s : %d"), *ErrorMsg, GetLastError());
 
 					ReleaseDC(ScreenHandle, ScreenContext);
