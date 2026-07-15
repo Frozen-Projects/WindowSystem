@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WindowEnums.generated.h"
+#include "Window_Enums.generated.h"
 
 UENUM(BlueprintType)
 enum class EWindowState : uint8

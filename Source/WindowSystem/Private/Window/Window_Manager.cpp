@@ -1,10 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "WindowManager.h"
-#include "WindowInstance.h"		// CloseAllWindows -> Destrow window actor.
-
-#include "Framework/Application/SlateApplication.h"
-#include "Engine/UserInterfaceSettings.h"
+#include "Window/Window_Manager.h"
+#include "Window/Window_Instance.h"
 
 TWeakObjectPtr<UFF_WindowSubsystem> UFF_WindowSubsystem::SelfReference;
 

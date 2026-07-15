@@ -5,29 +5,16 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
-#include "DragDropHandler.h"
+#include "Window_Enums.h"
+#include "Window/DragDropHandler.h"
+#include "Window/Window_Includes.h"
+#include "Window/Window_Structs.h"
 
-#include "WindowManager.generated.h"
+#include "Viewport/CustomViewport.h"
+
+#include "Window_Manager.generated.h"
 
 class AEachWindow_SWindow;
-
-// File drag drop system.
-USTRUCT(BlueprintType)
-struct WINDOWSYSTEM_API FDroppedFileStruct
-{
-	GENERATED_BODY()
-
-public:
-
-	UPROPERTY(BlueprintReadWrite)
-	FString FilePath;
-
-	UPROPERTY(BlueprintReadWrite)
-	FVector2D DropLocation = FVector2D();
-
-	UPROPERTY(BlueprintReadWrite)
-	bool bIsFolder = false;
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateFileDrop, const TArray<FDroppedFileStruct>&, OutMap);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDelegateWindowClosed, const FName&, WindowTag);

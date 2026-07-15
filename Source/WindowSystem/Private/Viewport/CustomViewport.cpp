@@ -1,10 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Viewport/CustomViewport.h"
-
-#include "Engine/Canvas.h"
-#include "CanvasItem.h"
-#include "Materials/MaterialRenderProxy.h"
 
 UCustomViewport::UCustomViewport() : Super(FObjectInitializer::Get())
 {
@@ -39,16 +33,21 @@ void UCustomViewport::LayoutPlayers()
     const TArray<ULocalPlayer*>& PlayerList = GetOuterUEngine()->GetGamePlayers(this);
     const int32 Player_Count = PlayerList.Num();
 
-    if (Player_Count <= 0)
+    if (!UKismetMathLibrary::InRange_IntInt(Player_Count, 1, 4, true, true))
     {
         this->LastPlayerCount = 0;
         this->bIsInitialsLoaded = false;
         this->View_Ratios.Reset();
         this->Old_View.Reset();
-		this->CRT->ClearColor = FLinearColor::White;
+        this->CRT->ClearColor = FLinearColor::White;
         this->FrameTarget = FVector2D::ZeroVector;
 
-        this->DelegateNewLayout.Broadcast(this->View_Ratios);
+        if (!IsEngineExitRequested() && GetWorld() && !GetWorld()->bIsTearingDown)
+        {
+            UE_LOG(LogTemp, Error, TEXT("Player count shouldn't exceed 4 or be less than 1. Requested number = %d"), Player_Count);
+            this->DelegateNewLayout.Broadcast(this->View_Ratios);
+        }
+
         return;
     }
 
@@ -77,7 +76,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            this->FrameTarget = FVector2D::ZeroVector;
+            //this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
             
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
@@ -116,7 +115,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            this->FrameTarget = FVector2D::ZeroVector;
+            //this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
 
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
@@ -160,7 +159,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            this->FrameTarget = FVector2D::ZeroVector;
+           // this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
             
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
@@ -209,18 +208,12 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            this->FrameTarget = FVector2D::ZeroVector;
+            //this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
            
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
-        return;
-    }
-
-    else if (Player_Count > 4)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Player count shouldn't exceed 4. Requested number = %d"), Player_Count);
         return;
     }
 }

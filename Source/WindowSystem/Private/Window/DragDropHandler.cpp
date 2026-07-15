@@ -1,5 +1,5 @@
-#include "DragDropHandler.h"
-#include "WindowManager.h"
+#include "Window/DragDropHandler.h"
+#include "Window/Window_Manager.h"
 
 int32 FDragDropHandler::GetWindowsBuildNumber()
 {

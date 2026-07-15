@@ -7,8 +7,8 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/ViewportSplitScreen.h"
 
-#include "WindowSystem_Includes.h"
-#include "CustomViewport_Delegates.h"
+#include "Viewport/CustomViewport_Includes.h"
+#include "Viewport/CustomViewport_Delegates.h"
 
 #include "CustomViewport.generated.h"
 
@@ -72,12 +72,12 @@ public:
     virtual void LayoutPlayers() override;
     virtual void Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas) override;
 
-    FDelegateNewLayout DelegateNewLayout;
-	FVector2D FrameTarget = FVector2D::ZeroVector;
-
     virtual bool ChangePlayerViewSize(const int32 PlayerId, FVector2D NewRatio, FVector2D NewOrigin);
 	virtual bool SetBackgroundMaterial(UMaterialInterface* In_MAT_BG, UMaterialInterface* In_MAT_Cut, UMaterialInterface* In_MAT_Highlight, FName In_CRT_Name = "Canvas", int32 In_Thickness = 10);
     virtual void ToggleBackground(bool bActive = true);
     virtual void UpdateAssets();
+
+    FDelegateNewLayout DelegateNewLayout;
+    FVector2D FrameTarget = FVector2D::ZeroVector;
 
 };

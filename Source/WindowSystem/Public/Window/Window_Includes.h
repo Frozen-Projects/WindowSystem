@@ -1,8 +1,7 @@
 #pragma once
 
-// Unreal Engine Includes.
+#pragma region Engine_Includes
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetRenderingLibrary.h"
 
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Subsystems/WorldSubsystem.h"
@@ -15,10 +14,9 @@
 
 #include "Misc/Optional.h"
 #include "Framework/Application/SWindowTitleBar.h"
-
-// Custom Includes.
-#include "WindowEnums.h"
-#include "Viewport/CustomViewport.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/UserInterfaceSettings.h"
+#pragma endregion Engine_Includes
 
 THIRD_PARTY_INCLUDES_START
 #include <string>

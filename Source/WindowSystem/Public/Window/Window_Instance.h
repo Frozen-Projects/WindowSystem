@@ -1,13 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-#include "WindowManager.h"
+#include "Window_Manager.h"
 
-#include "WindowInstance.generated.h"
+#include "Window_Instance.generated.h"
 
 UCLASS()
 class WINDOWSYSTEM_API AEachWindow_SWindow : public AActor

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "WindowSystemBPLibrary.h"
+#include "Window/Window_Includes.h"
 
 // File Drag Drop Message Handler Subclass.
 class FDragDropHandler : public IWindowsMessageHandler
