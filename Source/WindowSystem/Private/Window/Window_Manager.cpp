@@ -206,13 +206,7 @@ void UFF_WindowSubsystem::OnViewportDetected(FVector2D In_Position, FLinearColor
 
 		Each_Player->SetControllerId(0);
 
-		const FVector2D FrameOriginPixels = PixelViewportSize * Each_Player->Origin;
-
-		if (this->CustomViewport->FrameTarget != FrameOriginPixels)
-		{
-			this->CustomViewport->FrameTarget = FrameOriginPixels;
-			this->CustomViewport->UpdateAssets();
-		}
+		this->CustomViewport->SetHighlightedPlayer(Each_Player);
 
 		return;
 	}
@@ -412,4 +406,15 @@ bool UFF_WindowSubsystem::BringFrontOnHover(AEachWindow_SWindow* TargetWindow)
 	this->HoveredWindow = TargetWindow;
 
 	return true;
+}
+
+void UFF_WindowSubsystem::PrintPlayerId(bool bActive)
+{
+	if (!IsValid(this->CustomViewport))
+	{
+		return;
+	}
+
+	this->CustomViewport->bPrintPlayerId = bActive;
+	this->CustomViewport->UpdateAssets();
 }

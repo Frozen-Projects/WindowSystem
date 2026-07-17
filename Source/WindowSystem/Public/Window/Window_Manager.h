@@ -94,7 +94,10 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Bring Front on Hover", ToolTip = "", Keywords = "hover, system, bring, window, front"), Category = "Frozen Forest|Window System|Window")
 	virtual bool BringFrontOnHover(AEachWindow_SWindow* TargetWindow);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Initialize Mouse Hook", ToolTip = "", Keywords = "initialize, mouse, hook"), Category = "Frozen Forest|Window System|Window")
 	virtual void InitMouseHook();
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Print Player ID", ToolTip = "", Keywords = "print, player, id"), Category = "Frozen Forest|Window System|Window")
+	virtual void PrintPlayerId(bool bActive);
 
 };

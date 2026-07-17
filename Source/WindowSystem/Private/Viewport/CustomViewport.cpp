@@ -30,9 +30,13 @@ void UCustomViewport::LayoutPlayers()
         this->View_Ratios.Reset();
         this->Old_View.Reset();
         this->CRT->ClearColor = FLinearColor::White;
-        this->FrameTarget = FVector2D::ZeroVector;
-
+        this->HighlightedPlayer = nullptr;
         return;
+    }
+
+    if (this->HighlightedPlayer && !PlayerList.Contains(this->HighlightedPlayer))
+    {
+        this->HighlightedPlayer = nullptr;
     }
 
     TArray<FPlayerViews> Temp_Views;
@@ -60,9 +64,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            //this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-            
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
@@ -99,9 +101,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            //this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
@@ -143,9 +143,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-           // this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-            
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
@@ -192,9 +190,7 @@ void UCustomViewport::LayoutPlayers()
 
         if (this->View_Ratios != Temp_Views)
         {
-            //this->FrameTarget = FVector2D::ZeroVector;
             this->View_Ratios = MoveTemp(Temp_Views);
-           
             this->DelegateNewLayout.Broadcast(this->View_Ratios);
         }
 
@@ -228,20 +224,50 @@ void UCustomViewport::UpdateAssets()
         return;
     }
 
-    for (const FPlayerViews& Each_View : this->Old_View)
-    {
-        // Draw Frame first to avoid overlapping issues.
+    const TArray<ULocalPlayer*>& PlayerList = GetOuterUEngine()->GetGamePlayers(this);
 
-        if (this->FrameTarget == Each_View.Position)
+    for (int32 PlayerIdx = 0; PlayerIdx < this->Old_View.Num(); PlayerIdx++)
+    {
+        const FPlayerViews& Each_View = this->Old_View[PlayerIdx];
+
+        if (PlayerList.IsValidIndex(PlayerIdx) && PlayerList[PlayerIdx] == this->HighlightedPlayer)
         {
-            Canvas->K2_DrawMaterial(this->MAT_Highlight, Each_View.Position + FVector2D(-(this->HighLightThickness / 2)), Each_View.Size + FVector2D(this->HighLightThickness), FVector2D(0.f), FVector2D(1.f));
+            Canvas->K2_DrawMaterial(
+                this->MAT_Highlight,
+                Each_View.Position - FVector2D(this->HighLightThickness * 0.5),
+                Each_View.Size + FVector2D(this->HighLightThickness),
+                FVector2D::ZeroVector,
+                FVector2D(1.0)
+            );
         }
 
-        // Then Cut.
-        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Position, Each_View.Size, FVector2D(0.f), FVector2D(1.f));
+        Canvas->K2_DrawMaterial(this->MAT_Cut, Each_View.Position, Each_View.Size, FVector2D::ZeroVector, FVector2D(1.0));
+
+        if (this->bPrintPlayerId)
+        {
+            const FVector2D Slice = FVector2D(Each_View.Size.X / 20, Each_View.Size.Y / 20);
+            const FVector2D TextPosition = Each_View.Position + Slice;
+            Canvas->K2_DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("Player %d"), PlayerIdx + 1), TextPosition, FVector2D(1.0), FLinearColor::White, 1.0f, FLinearColor::Black, FVector2D::ZeroVector, true, true, true, FLinearColor::Black);
+        }
     }
 
     UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this->World, Context);
+}
+
+void UCustomViewport::SetHighlightedPlayer(ULocalPlayer* In_Player)
+{
+    if (!IsValid(In_Player))
+    {
+        return;
+    }
+
+    if (this->HighlightedPlayer == In_Player)
+    {
+        return;
+    }
+
+    this->HighlightedPlayer = In_Player;
+    this->UpdateAssets();
 }
 
 void UCustomViewport::CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas)

@@ -35,6 +35,9 @@ private:
 	FVector2D Old_ViewportSize = FVector2D::ZeroVector;
 
     UPROPERTY()
+    ULocalPlayer* HighlightedPlayer = nullptr;
+
+    UPROPERTY()
     FName CRT_Name = "Canvas";
 
     UPROPERTY()
@@ -68,6 +71,8 @@ public:
 
 	UCustomViewport();
 
+    bool bPrintPlayerId = true;
+
     virtual void LayoutPlayers() override;
     virtual void Draw(FViewport* In_Viewport, FCanvas* In_SceneCanvas) override;
 
@@ -76,7 +81,8 @@ public:
     virtual void ToggleBackground(bool bActive = true);
     virtual void UpdateAssets();
 
+    virtual void SetHighlightedPlayer(ULocalPlayer* In_Player);
+
     FDelegateNewLayout DelegateNewLayout;
-    FVector2D FrameTarget = FVector2D::ZeroVector;
 
 };
