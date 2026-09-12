@@ -12,6 +12,8 @@
 
 #include "CustomViewport.generated.h"
 
+class FWindowSystemViewportCapture;
+
 UCLASS()
 class WINDOWSYSTEM_API UCustomViewport : public UGameViewportClient
 {
@@ -67,9 +69,21 @@ private:
 
     virtual void CalculateBackground(FViewport* In_Viewport, FCanvas* In_SceneCanvas);
 
+    bool EnsureBackgroundCanvas();
+    void UpdateViewportCapture(float DeltaTime);
+
+    TSharedPtr<FWindowSystemViewportCapture, ESPMode::ThreadSafe> ViewportCapture;
+    FDelegateHandle CapturePreTickHandle;
+
 public:
 
 	UCustomViewport();
+    virtual void BeginDestroy() override;
+    virtual void DetachViewportClient() override;
+
+    UTextureRenderTarget2D* StartViewportCapture(FIntPoint Resolution);
+    void StopViewportCapture();
+    bool IsViewportCaptureReady() const;
 
     bool bPrintPlayerId = true;
 
@@ -85,4 +99,15 @@ public:
 
     FDelegateNewLayout DelegateNewLayout;
 
+	UPROPERTY(BlueprintReadOnly, Category = "CustomViewport|Delegates")
+	UTextureRenderTarget2D* ViewportRenderTarget = nullptr;
+
+	UPROPERTY(BlueprintReadWrite, Category = "CustomViewport|Delegates")
+	bool bCopyViewportToRenderTarget = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CustomViewport|Capture")
+    FIntPoint ViewportCaptureResolution = FIntPoint(2560, 1600);
+
+    UPROPERTY(BlueprintReadOnly, Category = "CustomViewport|Capture")
+    FString ViewportCaptureError;
 };

@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Window/Window_Instance.h"
+#include "GameFramework/GameUserSettings.h"
 #include "Misc/Optional.h"
 
 // Sets default values.

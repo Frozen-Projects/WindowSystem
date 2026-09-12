@@ -411,3 +411,35 @@ bool UWindowSystemBPLibrary::ToggleBackground(bool bActive)
 	CustomViewport->ToggleBackground(bActive);
 	return true;
 }
+
+UTextureRenderTarget2D* UWindowSystemBPLibrary::GetViewportRenderTarget()
+{
+	UCustomViewport* CustomViewport = GEngine ? Cast<UCustomViewport>(GEngine->GameViewport.Get()) : nullptr;
+	
+	if (!CustomViewport)
+	{
+		return nullptr;
+	}
+
+	return CustomViewport->StartViewportCapture(CustomViewport->ViewportCaptureResolution);
+}
+
+UTextureRenderTarget2D* UWindowSystemBPLibrary::StartViewportCapture(FIntPoint Resolution)
+{
+	UCustomViewport* CustomViewport = GEngine ? Cast<UCustomViewport>(GEngine->GameViewport.Get()) : nullptr;
+	return CustomViewport ? CustomViewport->StartViewportCapture(Resolution) : nullptr;
+}
+
+void UWindowSystemBPLibrary::StopViewportCapture()
+{
+	if (UCustomViewport* CustomViewport = GEngine ? Cast<UCustomViewport>(GEngine->GameViewport.Get()) : nullptr)
+	{
+		CustomViewport->StopViewportCapture();
+	}
+}
+
+bool UWindowSystemBPLibrary::IsViewportCaptureReady()
+{
+	UCustomViewport* CustomViewport = GEngine ? Cast<UCustomViewport>(GEngine->GameViewport.Get()) : nullptr;
+	return CustomViewport && CustomViewport->IsViewportCaptureReady();
+}

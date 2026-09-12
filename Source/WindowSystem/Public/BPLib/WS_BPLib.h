@@ -60,4 +60,16 @@ class WINDOWSYSTEM_API UWindowSystemBPLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Toggle Background", ToolTip = "We suggest you to use this when there is only one view and it is fullscreen.", Keywords = "background, layout, customize, splitscreen, viewport, toggle"), Category = "Frozen Forest|Window System")
 	static bool ToggleBackground(bool bActive = true);
 
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Viewport Render Target", ToolTip = "Starts viewport capture if needed and returns its BGRA8 render target. Wait for IsViewportCaptureReady before encoding.", Keywords = "get, viewport, render target, texture"), Category = "Frozen Forest|Window System")
+	static UTextureRenderTarget2D* GetViewportRenderTarget();
+
+	UFUNCTION(BlueprintCallable, Category = "Frozen Forest|Window System")
+	static UTextureRenderTarget2D* StartViewportCapture(FIntPoint Resolution);
+
+	UFUNCTION(BlueprintCallable, Category = "Frozen Forest|Window System")
+	static void StopViewportCapture();
+
+	UFUNCTION(BlueprintPure, Category = "Frozen Forest|Window System")
+	static bool IsViewportCaptureReady();
+
 };

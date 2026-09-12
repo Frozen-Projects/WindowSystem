@@ -9,7 +9,7 @@
 #include "Widgets/SWindow.h"				// Create Window.
 #include "Widgets/SWidget.h"				// Add Widget to Window.
 #include "Slate/WidgetRenderer.h"			// Take Screenshot of Window
-#include "Runtime/UMG/Public/UMG.h"         // Take Screenshot of Window
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Blueprint/UserWidget.h"
 
 #include "Misc/Optional.h"
