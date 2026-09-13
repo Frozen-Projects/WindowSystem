@@ -6,24 +6,9 @@ public class WindowSystem : ModuleRules
 	public WindowSystem(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
-        PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-			});
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"UMG",
-                "InputCore",
-				"RHI",
-				"RenderCore",
-			});
+		CppStandard = CppStandardVersion.Cpp20;
+		CppCompileWarningSettings.DeprecationWarningLevel = WarningLevel.Error;
+		PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "Slate", "SlateCore", "UMG", "InputCore", "RHI", "RenderCore" });
+		PrivateDependencyModuleNames.Add("Renderer");
 	}
 }
