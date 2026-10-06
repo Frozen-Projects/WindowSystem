@@ -53,6 +53,9 @@ private:
 	UFUNCTION()
 	virtual void OnViewportDetected(FVector2D In_Position, FLinearColor In_Color);
 
+	UPROPERTY()
+	TMap<FName, UUserWidget*> WidgetGarbage;
+
 public:
 
 	UPROPERTY()
@@ -60,6 +63,9 @@ public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+
+	virtual bool AddWidgetToGarbage(FName WidgetName, UUserWidget* Widget);
+	virtual UUserWidget* GetWidgetFromGarbage(FName WidgetName) const;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ToolTip = "It allows main window to support file drag drop.", ExposeOnSpawn = "true"), Category = "Frozen Forest|Window System|Window")
 	bool bAllowMainWindow = true;

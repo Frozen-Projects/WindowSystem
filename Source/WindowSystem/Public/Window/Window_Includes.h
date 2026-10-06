@@ -1,6 +1,7 @@
 #pragma once
 
 #pragma region Engine_Includes
+
 #include "Kismet/GameplayStatics.h"
 
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -16,6 +17,8 @@
 #include "Framework/Application/SWindowTitleBar.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Engine/UserInterfaceSettings.h"
+#include "GameFramework/GameUserSettings.h"
+
 #pragma endregion Engine_Includes
 
 THIRD_PARTY_INCLUDES_START

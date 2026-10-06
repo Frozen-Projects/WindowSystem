@@ -276,9 +276,20 @@ bool UFF_WindowSubsystem::CloseAllWindows()
 		return false;
 	}
 
+	for (TPair<FName, UUserWidget*> EachPair : this->WidgetGarbage)
+	{
+		if (IsValid(EachPair.Value))
+		{
+			EachPair.Value->ReleaseSlateResources(true);
+		}
+	}
+
+	this->WidgetGarbage.Empty();
+
 	for (TPair<FName, AEachWindow_SWindow*> EachPair : this->MAP_Windows)
 	{
 		AEachWindow_SWindow* EachWindow = EachPair.Value;
+		
 		if (IsValid(EachWindow))
 		{
 			EachWindow->Destroy();
@@ -417,4 +428,30 @@ void UFF_WindowSubsystem::PrintPlayerId(bool bActive)
 
 	this->CustomViewport->bPrintPlayerId = bActive;
 	this->CustomViewport->UpdateAssets();
+}
+
+bool UFF_WindowSubsystem::AddWidgetToGarbage(FName WidgetName, UUserWidget* Widget)
+{
+	if (WidgetName.IsNone() || WidgetName.ToString().IsEmpty())
+	{
+		return false;
+	}
+
+	if (!IsValid(Widget))
+	{
+		return false;
+	}
+
+	this->WidgetGarbage.Add(WidgetName, Widget);
+	return true;
+}
+
+UUserWidget* UFF_WindowSubsystem::GetWidgetFromGarbage(FName WidgetName) const
+{
+	if (WidgetName.IsNone() || WidgetName.ToString().IsEmpty())
+	{
+		return nullptr;
+	}
+
+	return this->WidgetGarbage.FindRef(WidgetName);
 }

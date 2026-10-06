@@ -1,8 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Window/Window_Instance.h"
-#include "GameFramework/GameUserSettings.h"
-#include "Misc/Optional.h"
 
 // Sets default values.
 AEachWindow_SWindow::AEachWindow_SWindow()
@@ -27,13 +25,6 @@ void AEachWindow_SWindow::BeginPlay()
 	if (!IsValid(this->WindowSubsystem))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"Manager\" are not valid for: %s"), *FString(WindowTag.ToString()));
-		this->Destroy();
-		return;
-	}
-
-	if (!IsValid(this->ContentWidget))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Window creation aborted because \"ContentWidget\" are not valid for: %s"), *FString(WindowTag.ToString()));
 		this->Destroy();
 		return;
 	}
@@ -148,21 +139,30 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		return false;
 	}
 
-	if (WindowTag.IsNone() || WindowTag.ToString().IsEmpty())
+	if (this->WindowTag.IsNone() || this->WindowTag.ToString().IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Window tag is empty."));
 		return false;
 	}
 
-	if (this->WindowSubsystem->MAP_Windows.Contains(WindowTag))
+	if (this->WindowSubsystem->MAP_Windows.Contains(this->WindowTag))
 	{
 		UE_LOG(LogTemp, Error, TEXT("There is a window with that tag."));
 		return false;
 	}
 
+	UUserWidget* GarbageContent = this->WindowSubsystem->GetWidgetFromGarbage(this->WindowTag);
+	UUserWidget* Content = IsValid(GarbageContent) ? GarbageContent : this->ContentWidget;
+
+	if (!IsValid(Content))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Content widget is not valid : %s"), *FString(WindowTag.ToString()));
+		return false;
+	}
+
 	EWindowType WindowType = EWindowType::Normal;
 	
-	switch (WindowTypeBp)
+	switch (this->WindowTypeBp)
 	{
 		case EWindowTypeBp::Normal:
 			WindowType = EWindowType::Normal;
@@ -184,22 +184,22 @@ bool AEachWindow_SWindow::CreateNewWindow()
 	// Blueprints exposed UObject should contain TSharedPtr NOT TSharedRef.
 	TSharedPtr<SWindow> WidgetWindow = SNew(SWindow)
 		.bDragAnywhere(true)
-		.ClientSize(WindowSize)
-		.LayoutBorder(BorderThick)
-		.UserResizeBorder(BorderThick)
-		.Title(InWindowTitle)
-		.ToolTipText(InToolTip)
-		.ForceVolatile(bForceVolatile)
-		.ShouldPreserveAspectRatio(bPreserveAspectRatio)
-		.IsInitiallyMinimized(bMinimized)
+		.ClientSize(this->WindowSize)
+		.LayoutBorder(this->BorderThick)
+		.UserResizeBorder(this->BorderThick)
+		.Title(this->InWindowTitle)
+		.ToolTipText(this->InToolTip)
+		.ForceVolatile(this->bForceVolatile)
+		.ShouldPreserveAspectRatio(this->bPreserveAspectRatio)
+		.IsInitiallyMinimized(this->bMinimized)
 		.FocusWhenFirstShown(true)
-		.HasCloseButton(bHasClose)
-		.SupportsMinimize(bSupportsMinimized)
-		.SupportsMaximize(bSupportsMaximized)
+		.HasCloseButton(this->bHasClose)
+		.SupportsMinimize(this->bSupportsMinimized)
+		.SupportsMaximize(this->bSupportsMaximized)
 		.SupportsTransparency(EWindowTransparency::PerWindow)
-		.IsTopmostWindow(bIsTopMost)
+		.IsTopmostWindow(this->bIsTopMost)
 		.Type(WindowType)
-		.UseOSWindowBorder(bUseNativeBorder)
+		.UseOSWindowBorder(this->bUseNativeBorder)
 		.AdjustInitialSizeAndPositionForDPIScale(true)
 		;
 
@@ -233,13 +233,13 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		SizeLimits.SetMaxHeight(this->MaxSize.Y);
 	}
 
-	WidgetWindow->SetContent(ContentWidget->TakeWidget());
+	WidgetWindow->SetContent(Content->TakeWidget());
 	WidgetWindow->SetAllowFastUpdate(true);
-	WidgetWindow->SetMirrorWindow(bSetMirrorWindow);
+	WidgetWindow->SetMirrorWindow(this->bSetMirrorWindow);
 	WidgetWindow->MoveWindowTo(StartPosition);
 	WidgetWindow->SetTag(WindowTag);
-	WidgetWindow->SetNativeWindowButtonsVisibility(bHasClose);
-	WidgetWindow->SetForegroundColor(TitleColor);
+	WidgetWindow->SetNativeWindowButtonsVisibility(this->bHasClose);
+	WidgetWindow->SetForegroundColor(this->TitleColor);
 	WidgetWindow->SetSizeLimits(SizeLimits);
 	WidgetWindow->SetOnWindowMoved(FOnWindowClosed::CreateUObject(this, &AEachWindow_SWindow::NotifyWindowMoved));
 	WidgetWindow->SetOnWindowClosed(FOnWindowClosed::CreateUObject(this, &AEachWindow_SWindow::NotifyWindowClosed));
@@ -267,19 +267,32 @@ bool AEachWindow_SWindow::CreateNewWindow()
 
 void AEachWindow_SWindow::CloseWindowCallback()
 {
-	if (IsValid(ContentWidget))
+	if (!IsValid(this->WindowSubsystem))
 	{
-		ContentWidget->ReleaseSlateResources(true);
+		return;
 	}
 
-	if (WindowPtr.IsValid())
+	if (IsValid(this->ContentWidget))
 	{
-		WindowPtr->HideWindow();
-		WindowPtr->RequestDestroyWindow();
-		WindowPtr.Reset();
+		if (this->bUseGarbageOnClose)
+		{
+			this->WindowSubsystem->AddWidgetToGarbage(this->WindowTag, MoveTemp(this->ContentWidget));
+		}
+
+		else
+		{
+			this->ContentWidget->ReleaseSlateResources(true);
+		}
 	}
 
-	if (IsValid(this->WindowSubsystem) && this->WindowSubsystem->MAP_Windows.Contains(WindowTag))
+	if (this->WindowPtr.IsValid())
+	{
+		this->WindowPtr->HideWindow();
+		this->WindowPtr->RequestDestroyWindow();
+		this->WindowPtr.Reset();
+	}
+
+	if (this->WindowSubsystem->MAP_Windows.Contains(WindowTag))
 	{
 		this->WindowSubsystem->MAP_Windows.Remove(WindowTag);
 	}
