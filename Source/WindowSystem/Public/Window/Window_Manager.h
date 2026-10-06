@@ -56,16 +56,21 @@ private:
 	UPROPERTY()
 	TMap<FName, UUserWidget*> WidgetGarbage;
 
-public:
-
 	UPROPERTY()
 	TMap<FName, AEachWindow_SWindow*> MAP_Windows;
+
+public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
 	virtual bool AddWidgetToGarbage(FName WidgetName, UUserWidget* Widget);
 	virtual UUserWidget* GetWidgetFromGarbage(FName WidgetName) const;
+
+	virtual bool AddWindowToMap(FName WindowTag, AEachWindow_SWindow* Window);
+	virtual AEachWindow_SWindow* GetWindowFromMap(FName WindowTag) const;
+	virtual bool IsMapContainWindow(FName WindowTag) const;
+	virtual void RemoveWindowFromMap(FName WindowTag);
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ToolTip = "It allows main window to support file drag drop.", ExposeOnSpawn = "true"), Category = "Frozen Forest|Window System|Window")
 	bool bAllowMainWindow = true;

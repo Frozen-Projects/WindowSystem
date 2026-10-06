@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Window/Window_Instance.h"
 
 // Sets default values.
@@ -38,7 +36,7 @@ void AEachWindow_SWindow::BeginPlay()
 	}
 
 	// Add created window actor class to the list.
-	this->WindowSubsystem->MAP_Windows.Add(WindowTag, this);
+	this->WindowSubsystem->AddWindowToMap(WindowTag, this);
 
 	// Start window hover detection.
 
@@ -76,7 +74,7 @@ void AEachWindow_SWindow::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-// Protected Functions.
+#pragma region Internal_Functions
 
 void AEachWindow_SWindow::NotifyWindowClosed(const TSharedRef<SWindow>& Window)
 {
@@ -145,16 +143,16 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		return false;
 	}
 
-	if (this->WindowSubsystem->MAP_Windows.Contains(this->WindowTag))
+	if (this->WindowSubsystem->IsMapContainWindow(this->WindowTag))
 	{
-		UE_LOG(LogTemp, Error, TEXT("There is a window with that tag."));
+		UE_LOG(LogTemp, Error, TEXT("There is a window with that tag : %s"), *FString(WindowTag.ToString()));
 		return false;
 	}
 
 	UUserWidget* GarbageContent = this->WindowSubsystem->GetWidgetFromGarbage(this->WindowTag);
-	UUserWidget* Content = IsValid(GarbageContent) ? GarbageContent : this->ContentWidget;
+	this->ContentWidget = IsValid(GarbageContent) ? GarbageContent : this->ContentWidget;
 
-	if (!IsValid(Content))
+	if (!IsValid(this->ContentWidget))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Content widget is not valid : %s"), *FString(WindowTag.ToString()));
 		return false;
@@ -233,7 +231,7 @@ bool AEachWindow_SWindow::CreateNewWindow()
 		SizeLimits.SetMaxHeight(this->MaxSize.Y);
 	}
 
-	WidgetWindow->SetContent(Content->TakeWidget());
+	WidgetWindow->SetContent(this->ContentWidget->TakeWidget());
 	WidgetWindow->SetAllowFastUpdate(true);
 	WidgetWindow->SetMirrorWindow(this->bSetMirrorWindow);
 	WidgetWindow->MoveWindowTo(StartPosition);
@@ -267,14 +265,9 @@ bool AEachWindow_SWindow::CreateNewWindow()
 
 void AEachWindow_SWindow::CloseWindowCallback()
 {
-	if (!IsValid(this->WindowSubsystem))
-	{
-		return;
-	}
-
 	if (IsValid(this->ContentWidget))
 	{
-		if (this->bUseGarbageOnClose)
+		if (this->bUseGarbageOnClose && IsValid(this->WindowSubsystem))
 		{
 			this->WindowSubsystem->AddWidgetToGarbage(this->WindowTag, MoveTemp(this->ContentWidget));
 		}
@@ -292,13 +285,15 @@ void AEachWindow_SWindow::CloseWindowCallback()
 		this->WindowPtr.Reset();
 	}
 
-	if (this->WindowSubsystem->MAP_Windows.Contains(WindowTag))
+	if (IsValid(this->WindowSubsystem) && this->WindowSubsystem->IsMapContainWindow(WindowTag))
 	{
-		this->WindowSubsystem->MAP_Windows.Remove(WindowTag);
+		this->WindowSubsystem->RemoveWindowFromMap(WindowTag);
 	}
 }
 
-// UFUNCTIONS.
+#pragma endregion Internal_Functions
+
+#pragma region BP_Functions.
 
 bool AEachWindow_SWindow::SetFileDragDropSupport()
 {
@@ -644,3 +639,5 @@ bool AEachWindow_SWindow::GetWindowTitle(FText& OutWindowTitle)
 	OutWindowTitle = WindowPtr.ToSharedRef().Get().GetTitle();
 	return true;
 }
+
+#pragma endregion BP_Functions.

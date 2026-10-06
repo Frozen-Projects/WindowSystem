@@ -81,7 +81,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, meta = (ToolTip = "", ExposeOnSpawn = "true"))
 	bool bIsTopMost = false;
 
-	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "If you close your window, you will lost your widget and its contents.", ExposeOnSpawn = "true"))
+	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "If you close your window and don't use garbage, you will lose your widget and its contents.", ExposeOnSpawn = "true"))
 	bool bHasClose = false;
 
 	UPROPERTY(BlueprintReadOnly, meta = (ToolTip = "It will send content widget to the garbage on close.", ExposeOnSpawn = "true"))

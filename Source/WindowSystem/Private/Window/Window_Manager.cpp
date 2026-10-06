@@ -455,3 +455,39 @@ UUserWidget* UFF_WindowSubsystem::GetWidgetFromGarbage(FName WidgetName) const
 
 	return this->WidgetGarbage.FindRef(WidgetName);
 }
+
+bool UFF_WindowSubsystem::AddWindowToMap(FName WindowTag, AEachWindow_SWindow* Window)
+{
+	if (WindowTag.IsNone() || WindowTag.ToString().IsEmpty())
+	{
+		return false;
+	}
+
+	if (!IsValid(Window))
+	{
+		return false;
+	}
+
+	this->MAP_Windows.Add(WindowTag, Window);
+	return true;
+}
+
+AEachWindow_SWindow* UFF_WindowSubsystem::GetWindowFromMap(FName WindowTag) const
+{
+	return this->MAP_Windows.FindRef(WindowTag);
+}
+
+bool UFF_WindowSubsystem::IsMapContainWindow(FName WindowTag) const
+{
+	return this->MAP_Windows.Contains(WindowTag);
+}
+
+void UFF_WindowSubsystem::RemoveWindowFromMap(FName WindowTag)
+{
+	if (WindowTag.IsNone() || WindowTag.ToString().IsEmpty())
+	{
+		return;
+	}
+
+	this->MAP_Windows.Remove(WindowTag);
+}
